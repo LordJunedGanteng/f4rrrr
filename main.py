@@ -689,14 +689,16 @@ def api_process():
     else:
         if not url:
             return jsonify({'error': 'URL tidak boleh kosong.'}), 400
-        # Blacklist playlist URLs
+        # Auto-strip playlist URLs
         if source == 'youtube':
-            from urllib.parse import urlparse, parse_qs
+            from urllib.parse import urlparse, parse_qs, urlunparse, urlencode
             parsed = urlparse(url)
             qs = parse_qs(parsed.query)
-            if 'list' in qs:
-                return jsonify({'error': 'Link playlist tidak didukung. Paste link video langsung (tanpa &list=...).'}), 400
-
+            if 'v' in qs:
+                # Keep only video ID 'v', strip 'list', 'start_radio', etc.
+                video_id = qs['v'][0]
+                new_qs = urlencode({'v': video_id})
+                path_or_url = urlunparse((parsed.scheme, parsed.netloc, parsed.path, parsed.params, new_qs, parsed.fragment))
     job_id = str(uuid.uuid4())
     web_jobs[job_id] = {'status': 'processing', 'progress': 5, 'step': 'Antri...', 'files': [], 'error': None, 'logs': []}
 
