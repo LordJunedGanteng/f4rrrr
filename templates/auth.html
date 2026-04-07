@@ -36,24 +36,24 @@
         }
         h2 { font-size: 28px; font-weight: 800; letter-spacing: -1px; margin-bottom: 8px; }
         p.subtitle { color: var(--muted); font-size: 14px; margin-bottom: 32px; }
-        .input-group { margin-bottom: 20px; position: relative; }
+        .input-group { margin-bottom: 24px; position: relative; text-align: left; }
         .label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--purple); margin-bottom: 8px; display: block; }
         input {
-            width: 100%; padding: 14px 18px; background: rgba(255,255,255,0.04);
-            border: 1px solid var(--border); border-radius: 12px;
-            color: white; font-family: 'Inter', sans-serif; font-size: 14px;
+            width: 100%; padding: 16px 20px; background: rgba(255,255,255,0.05);
+            border: 1px solid var(--border); border-radius: 16px;
+            color: white; font-family: 'Inter', sans-serif; font-size: 15px;
             transition: all 0.2s; box-sizing: border-box;
         }
-        input:focus { border-color: var(--purple); outline: none; box-shadow: 0 0 0 4px rgba(139,92,246,0.1); }
-        .btn-auth {
-            width: 100%; padding: 16px; background: var(--purple); border: none; border-radius: 12px;
-            color: white; font-weight: 700; cursor: pointer; margin-top: 12px;
-            box-shadow: 0 8px 30px rgba(139,92,246,0.2);
-            transition: opacity 0.2s;
+        input:focus { border-color: var(--purple); outline: none; box-shadow: 0 0 0 4px rgba(139,92,246,0.1); background: rgba(255,255,255,0.08); }
+        .btn-primary {
+            width: 100%; padding: 16px; background: var(--purple); border: none; border-radius: 16px;
+            color: white; font-weight: 800; cursor: pointer; margin-top: 12px;
+            box-shadow: 0 8px 30px rgba(139,92,246,0.25);
+            transition: all 0.2s; font-size: 15px;
         }
-        .btn-auth:hover { opacity: 0.8; }
-        .btn-primary:hover { opacity: 0.8; }
-        .error-msg { color: #f87171; font-size: 12px; margin-bottom: 20px; font-weight: 600; text-align: center; }
+        .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); box-shadow: 0 10px 40px rgba(139,92,246,0.4); }
+        .btn-primary:active { transform: scale(0.98); }
+        .error-msg { color: #f87171; font-size: 13px; margin-bottom: 24px; font-weight: 600; text-align: center; background: rgba(248,113,113,0.1); padding: 10px; border-radius: 12px; border: 1px solid rgba(248,113,113,0.2); }
         .switch-link { text-align: center; margin-top: 24px; font-size: 13px; color: var(--muted); }
         .switch-link a { color: var(--purple); text-decoration: none; font-weight: 700; }
         .switch-link a:hover { text-decoration: underline; }
@@ -82,11 +82,11 @@
 
         <form method="POST">
             <div class="input-group">
-                <label>Username</label>
+                <div class="label">Username</div>
                 <input type="text" name="username" placeholder="your_username" required>
             </div>
             <div class="input-group">
-                <label>Password</label>
+                <div class="label">Password</div>
                 <input type="password" name="password" placeholder="••••••••" required>
             </div>
             <button type="submit" class="btn-primary">
