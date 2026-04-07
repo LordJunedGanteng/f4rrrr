@@ -2,7 +2,7 @@ import yt_dlp
 from pydub import AudioSegment
 import os
 import json
-from flask import Flask, render_template, jsonify, request, send_file, redirect
+from flask import Flask, render_template, jsonify, request, send_file, redirect, session, url_for
 import requests as _req
 import urllib.parse
 import datetime
@@ -10,6 +10,13 @@ import string
 import random
 import shutil
 import zipfile
+import uuid
+import threading
+import secrets
+import psutil
+import time
+import functools
+from werkzeug.security import generate_password_hash, check_password_hash
 
 def get_random_string(length=8):
     letters = string.ascii_lowercase + string.digits
@@ -21,6 +28,43 @@ os.makedirs("downloads", exist_ok=True)
 #  WEB SERVICE (Flask)
 # ─────────────────────────────────────────────
 app = Flask(__name__, template_folder='templates', static_folder='static')
+app.secret_key = os.environ.get("FLASK_SECRET", secrets.token_hex(24))
+
+# Data storage (JSON-based for Render compatibility)
+USERS_FILE  = 'users.json'
+HISTORY_FILE = 'history.json'
+ADMIN_CREDENTIALS = {
+    "username": "rkdkcw",
+    "password": generate_password_hash("admin@123")
+}
+
+# Helper to load/save JSON data
+def load_json(path, default=[]):
+    if os.path.exists(path):
+        try:
+            with open(path, 'r') as f: return json.load(f)
+        except: return default
+    return default
+
+def save_json(path, data):
+    with open(path, 'w') as f: json.dump(data, f, indent=2)
+
+# Auth middleware
+def login_required(f):
+    @functools.wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'user_id' not in session:
+            return redirect(url_for('login_page'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+def admin_required(f):
+    @functools.wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'is_admin' not in session:
+            return redirect(url_for('admin_login_page'))
+        return f(*args, **kwargs)
+    return decorated_function
 
 # Job storage: job_id -> {status, progress, step, files, error}
 web_jobs = {}
@@ -314,15 +358,152 @@ def process_web_job(job_id, source, mode, url_or_path, is_upload, speed=2.253, a
         print(f'    [!] Web Job Error ({job_id}): {e}')
 
 
+# ─────────────────────────────────────────────
+#  CORE ROUTES (Landing & Auth)
+# ─────────────────────────────────────────────
 @app.route('/')
-def home():
-    return render_template('index.html')
+def landing_page():
+    if 'user_id' in session: return redirect(url_for('app_dashboard'))
+    return render_template('landing.html')
+
+@app.route('/login', methods=['GET', 'POST'])
+def login_page():
+    if request.method == 'POST':
+        user_list = load_json(USERS_FILE, {})
+        user     = request.form.get('username', '').strip()
+        pw       = request.form.get('password', '').strip()
+        if user in user_list and check_password_hash(user_list[user]['password'], pw):
+            session['user_id'] = user
+            return redirect(url_for('app_dashboard'))
+        return render_template('auth.html', error="Username atau password salah")
+    return render_template('auth.html', mode='login')
+
+@app.route('/signup', methods=['GET', 'POST'])
+def signup_page():
+    if request.method == 'POST':
+        user_list = load_json(USERS_FILE, {})
+        user     = request.form.get('username', '').strip()
+        pw       = request.form.get('password', '').strip()
+        if not user or not pw: return render_template('auth.html', error="Harap isi semua field", mode='signup')
+        if user in user_list: return render_template('auth.html', error="Username sudah terpakai", mode='signup')
+        user_list[user] = {
+            'password':   generate_password_hash(pw),
+            'is_premium': False,
+            'joined_at':  datetime.datetime.now().isoformat()
+        }
+        save_json(USERS_FILE, user_list)
+        session['user_id'] = user
+        return redirect(url_for('app_dashboard'))
+    return render_template('auth.html', mode='signup')
+
+@app.route('/logout')
+def logout():
+    session.clear()
+    return redirect(url_for('landing_page'))
+
+@app.route('/app')
+@login_required
+def app_dashboard():
+    users = load_json(USERS_FILE, {})
+    user_info = users.get(session['user_id'], {})
+    return render_template('index.html', 
+                           user=session['user_id'], 
+                           is_premium=user_info.get('is_premium', False))
+
+# ─────────────────────────────────────────────
+#  ADMIN PANEL
+# ─────────────────────────────────────────────
+@app.route('/admin/login', methods=['GET', 'POST'])
+def admin_login_page():
+    if request.method == 'POST':
+        user = request.form.get('username', '').strip()
+        pw   = request.form.get('password', '').strip()
+        if user == ADMIN_CREDENTIALS['username'] and check_password_hash(ADMIN_CREDENTIALS['password'], pw):
+            session['is_admin'] = True
+            return redirect(url_for('admin_dashboard'))
+        return render_template('auth.html', error="Invalid Admin Credentials", mode='admin')
+    return render_template('auth.html', mode='admin')
+
+@app.route('/admin/dashboard')
+@admin_required
+def admin_dashboard():
+    return render_template('admin.html')
+
+@app.route('/api/admin/stats')
+@admin_required
+def api_admin_stats():
+    users   = load_json(USERS_FILE, {})
+    history = load_json(HISTORY_FILE, [])
+    # System Stats
+    mem = psutil.virtual_memory()
+    # Health Checks
+    def check_status(url):
+        try: return 200 <= _req.head(url, timeout=3).status_code < 400
+        except: return False
+    
+    return jsonify({
+        'total_users': len(users),
+        'premium_users': sum(1 for u in users.values() if u.get('is_premium')),
+        'total_tasks': len(history),
+        'memory': {
+            'total': mem.total,
+            'used': mem.used,
+            'percent': mem.percent
+        },
+        'apis': {
+            'youtube': check_status('https://www.youtube.com'),
+            'spotify': check_status('https://www.spotify.com'),
+            'roblox':  check_status('https://apis.roblox.com/assets/v1/assets'),
+        }
+    })
+
+@app.route('/api/admin/users')
+@admin_required
+def api_admin_users():
+    return jsonify(load_json(USERS_FILE, {}))
+
+@app.route('/api/admin/toggle_premium', methods=['POST'])
+@admin_required
+def api_admin_toggle_premium():
+    target = request.json.get('username')
+    users  = load_json(USERS_FILE, {})
+    if target in users:
+        users[target]['is_premium'] = not users[target].get('is_premium', False)
+        save_json(USERS_FILE, users)
+        return jsonify({'ok': True, 'new_status': users[target]['is_premium']})
+    return jsonify({'error': 'User not found'}), 404
+
+# ─────────────────────────────────────────────
+#  COOKIES API
+# ─────────────────────────────────────────────
+@app.route('/api/cookies', methods=['GET', 'POST', 'DELETE'])
+@login_required
+def api_cookies():
+    if request.method == 'GET':
+        active = cookies_active()
+        entries = 0
+        if active:
+            with open(COOKIES_FILE, 'r') as f: entries = sum(1 for line in f if line.strip() and not line.startswith('#'))
+        return jsonify({'active': active, 'entries': entries})
+    
+    if request.method == 'POST':
+        c_text = request.json.get('cookies', '').strip()
+        if not c_text: return jsonify({'error': 'Empty content'}), 400
+        os.makedirs(os.path.dirname(COOKIES_FILE), exist_ok=True)
+        with open(COOKIES_FILE, 'w') as f: f.write(c_text)
+        entries = sum(1 for line in c_text.splitlines() if line.strip() and not line.startswith('#'))
+        return jsonify({'ok': True, 'entries': entries})
+    
+    if request.method == 'DELETE':
+        if os.path.exists(COOKIES_FILE): os.remove(COOKIES_FILE)
+        return jsonify({'ok': True})
 
 @app.route('/favicon.ico')
 def favicon():
     return '', 204
 
 @app.route('/api/process', methods=['POST'])
+@login_required
 def api_process():
     source = request.form.get('source', 'youtube')
     mode   = request.form.get('mode', 'bypassed')
@@ -373,6 +554,7 @@ def api_process():
     return jsonify({'job_id': job_id})
 
 @app.route('/api/status/<job_id>')
+@login_required
 def api_status(job_id):
     job = web_jobs.get(job_id)
     if not job:
@@ -380,6 +562,7 @@ def api_status(job_id):
     return jsonify(job)
 
 @app.route('/api/download/<token>')
+@login_required
 def api_download(token):
     path = download_tokens.get(token)
     if not path or not os.path.exists(path):
@@ -415,6 +598,7 @@ def save_history_entry(entry):
         json.dump(history, f)
 
 @app.route('/api/preview')
+@login_required
 def api_preview():
     url = request.args.get('url', '').strip()
     if not url:
@@ -442,6 +626,7 @@ def api_preview():
         return jsonify({'error': str(e)}), 400
 
 @app.route('/api/history', methods=['GET'])
+@login_required
 def api_history_get():
     if not os.path.exists(HISTORY_FILE):
         return jsonify([])
@@ -452,12 +637,14 @@ def api_history_get():
         return jsonify([])
 
 @app.route('/api/history', methods=['DELETE'])
+@login_required
 def api_history_delete():
     if os.path.exists(HISTORY_FILE):
         os.remove(HISTORY_FILE)
     return jsonify({'ok': True})
 
 @app.route('/api/roblox/thumbnail/<asset_id>')
+@login_required
 def api_roblox_thumbnail(asset_id):
     try:
         resp = _req.get(
@@ -486,6 +673,7 @@ def api_roblox_thumbnail(asset_id):
         return jsonify({'error': str(e)}), 502
 
 @app.route('/api/roblox/upload', methods=['POST'])
+@login_required
 def api_roblox_upload():
     data      = request.get_json(force=True) or {}
     token     = data.get('token', '')
@@ -537,6 +725,7 @@ def api_roblox_upload():
     return jsonify({'ok': True, 'operation_id': op_id, 'path': path})
 
 @app.route('/api/roblox/operation/<op_id>')
+@login_required
 def api_roblox_operation(op_id):
     target = request.args.get('target', 'personal')
     if target == 'group':
