@@ -786,19 +786,20 @@ def save_history_entry(entry):
 @login_required
 def api_preview():
     url = request.args.get('url', '').strip()
-    if not url:
-        return jsonify({'error': 'URL kosong'}), 400
+    if not url: return jsonify({'error': 'URL kosong'}), 400
+    
+    print(f"--- [DEBUG] Preview request for: {url} ---")
+    
     ydl_opts = {
         'quiet': True, 'no_warnings': True, 'skip_download': True,
         'nocheckcertificate': True, 'noplaylist': True,
         'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
         'extractor_args': {'youtube': {'player_client': ['web', 'android']}},
     }
-    loc = _get_ffmpeg_location()
-    if loc:
-        ydl_opts['ffmpeg_location'] = loc
     _apply_cookies(ydl_opts)
+    
     try:
+        print(f"--- [DEBUG] Extracting metadata... (Cookies: {cookies_active()}) ---")
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=False)
             if info and 'entries' in info:

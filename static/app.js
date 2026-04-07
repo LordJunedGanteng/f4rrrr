@@ -334,9 +334,14 @@
       try {
         const res  = await fetch(`/api/preview?url=${encodeURIComponent(val)}`);
         const data = await res.json();
-        if (data.error) { clearPreview(); return; }
+        if (data.error) {
+          showPreviewError(data.error); 
+          return; 
+        }
         showPreviewCard(data);
-      } catch { clearPreview(); }
+      } catch { 
+        showPreviewError('Gagal memuat preview. Cek koneksi server.');
+      }
     }, 700);
   });
 
@@ -411,7 +416,26 @@
   }
 
   // ── Process ──
+  function requestNotifPermission() {
+    if ("Notification" in window && Notification.permission === "default") {
+      Notification.requestPermission();
+    }
+  }
+
+  function notifyUser(title, body) {
+    if ("Notification" in window && Notification.permission === "granted") {
+      new Notification(title, { body, icon: '/static/logo.png' });
+    }
+    // Simple sound alert
+    try {
+      const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+      audio.volume = 0.5;
+      audio.play();
+    } catch(e) {}
+  }
+
   document.getElementById('btn-process').addEventListener('click', async () => {
+    requestNotifPermission();
     clearResults();
     clearErrors();
 
@@ -466,6 +490,7 @@
           clearInterval(pollTimer);
           setProgress(100, 'Selesai');
           renderLogs(data.logs || []);
+          notifyUser('Audio Selesai!', 'File kamu sudah siap untuk diunduh.');
           setTimeout(() => {
             hideProgress();
             window._lastMixtapeParts = data.mixtape_parts || null;
