@@ -77,6 +77,18 @@
             background: rgba(16, 185, 129, 0.1); padding: 4px 10px; border-radius: 99px;
         }
         .online-dot { width: 6px; height: 6px; background: #10b981; border-radius: 50%; box-shadow: 0 0 8px #10b981; }
+
+        /* Online List UI */
+        .online-section { max-width: 1100px; margin: 40px auto; text-align: center; padding: 0 20px; }
+        .user-list { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; min-height: 40px; }
+        .user-pill {
+            background: rgba(255,255,255,0.03); border: 1px solid var(--border);
+            padding: 6px 14px; border-radius: 12px; font-size: 13px; font-weight: 600;
+            color: var(--text); backdrop-filter: blur(10px);
+            display: flex; align-items: center; gap: 8px;
+            animation: fadeIn 0.5s ease forwards;
+        }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
 <body style="--mouse-x: 50%; --mouse-y: 50%;">
@@ -97,6 +109,14 @@
         <p class="desc">Download dan proses audio dari YouTube, SoundCloud, atau Spotify dengan sekali klik. Masuk ke Roblox tanpa moderasi.</p>
         <a href="/signup" class="btn-get-started">Get Started Free</a>
     </div>
+
+    <div class="online-section">
+        <div style="font-size: 11px; font-weight: 700; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 16px;">Who's Online</div>
+        <div class="user-list" id="user-list">
+            <!-- Space for users -->
+        </div>
+    </div>
+
     <div class="features">
         <div class="feat-card">
             <h3>Bypass Moderation</h3>
@@ -119,12 +139,23 @@
             document.body.style.setProperty('--mouse-y', e.clientY + 'px');
         });
 
-        // Online Counter
+        // Online Counter & List
         async function updateOnline() {
             try {
                 const res = await fetch('/api/online_count');
                 const data = await res.json();
                 document.getElementById('online-count').textContent = data.count;
+
+                const userWrap = document.getElementById('user-list');
+                userWrap.innerHTML = '';
+                if (data.users && data.users.length > 0) {
+                    data.users.forEach(name => {
+                        const pill = document.createElement('div');
+                        pill.className = 'user-pill';
+                        pill.innerHTML = `<div class="online-dot" style="width:5px;height:5px;"></div> <span>${name}</span>`;
+                        userWrap.appendChild(pill);
+                    });
+                }
             } catch(e) {}
         }
         setInterval(updateOnline, 10000);

@@ -79,19 +79,34 @@ web_jobs = {}
 # Token -> file path (for secure download)
 download_tokens = {}
 # Online tracking
-active_sessions = {} # session_id -> last_seen
+active_sessions = {} # session_id -> {ts, user}
 
 def track_activity():
     if 'act_id' not in session: session['act_id'] = str(uuid.uuid4())
-    active_sessions[session['act_id']] = time.time()
+    user = session.get('user_id', f"Guest#{session['act_id'][-4:].upper()}")
+    active_sessions[session['act_id']] = {'ts': time.time(), 'user': user}
 
 @app.route('/api/online_count')
 def api_online_count():
     now = time.time()
     # Prune sessions older than 5 mins
-    to_del = [sid for sid, ts in active_sessions.items() if now - ts > 300]
+    to_del = [sid for sid, d in active_sessions.items() if now - d['ts'] > 300]
     for sid in to_del: active_sessions.pop(sid, None)
-    return jsonify({'count': len(active_sessions)})
+    
+    # Get unique usernames, sorted by most recent
+    sorted_sessions = sorted(active_sessions.values(), key=lambda x: x['ts'], reverse=True)
+    unique_users = []
+    seen = set()
+    for s in sorted_sessions:
+        if s['user'] not in seen:
+            unique_users.append(s['user'])
+            seen.add(s['user'])
+        if len(unique_users) >= 50: break
+        
+    return jsonify({
+        'count': len(active_sessions),
+        'users': unique_users
+    })
 
 COOKIES_FILE = 'DISCORD AUDIOBYPASSBOT/cookies.txt'
 
