@@ -261,6 +261,15 @@ def process_web_job(job_id, user_id, source, mode, url_or_path, is_upload, speed
 
         job['progress'] = 40
 
+        # Auto-switch to mixtape if duration > 7 minutes (420s)
+        if not duration and is_upload:
+            temp_audio = AudioSegment.from_file(mp3_file)
+            duration = len(temp_audio) / 1000
+        
+        if duration > 420 and mode != 'mixtape':
+            log('Durasi > 7 menit, otomatis beralih ke Mode Mixtape...', detail='Auto-Mixtape Activated')
+            mode = 'mixtape'
+
         if mode == 'normal':
             log('Menyiapkan file output...')
             token    = get_random_string(16)
