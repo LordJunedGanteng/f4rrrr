@@ -1,0 +1,1313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>RKDKCW — Audio Bypass</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #05050a;
+      --surface:   rgba(255,255,255,.04);
+      --surface2:  rgba(255,255,255,.06);
+      --border:    rgba(255,255,255,.08);
+      --border-hover: rgba(139,92,246,.5);
+      --purple:    #8b5cf6;
+      --violet:    #a855f7;
+      --blue:      #6366f1;
+      --pink:      #ec4899;
+      --text:      #f1f5f9;
+      --muted:     rgba(241,245,249,.4);
+      --radius:    14px;
+      --glow: 0 0 40px rgba(139,92,246,.18);
+    }
+
+    html, body {
+      height: 100%;
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      overflow-x: hidden;
+    }
+
+    /* ── Mesh gradient bg ── */
+    body::before {
+      content: '';
+      position: fixed; inset: 0; z-index: 0; pointer-events: none;
+      background:
+        radial-gradient(ellipse 80% 50% at 20% -10%, rgba(139,92,246,.22) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 40% at 80% 110%, rgba(99,102,241,.18) 0%, transparent 55%),
+        radial-gradient(ellipse 50% 60% at 50% 50%, rgba(168,85,247,.07) 0%, transparent 70%);
+    }
+
+    /* ── NAV ── */
+    nav {
+      position: sticky; top: 0; z-index: 100;
+      display: flex; align-items: center; gap: 12px;
+      padding: 0 48px;
+      height: 64px;
+      background: rgba(5,5,10,.7);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-logo {
+      display: flex; align-items: center; gap: 10px;
+      text-decoration: none;
+    }
+    .logo-mark {
+      width: 32px; height: 32px; border-radius: 8px;
+      background: linear-gradient(135deg, var(--purple), var(--blue));
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .logo-mark svg { width: 16px; height: 16px; fill: #fff; }
+    .nav-wordmark { font-size: 15px; font-weight: 700; letter-spacing: -.3px; color: var(--text); }
+    .nav-tag {
+      font-size: 10px; font-weight: 600; letter-spacing: .8px;
+      text-transform: uppercase;
+      background: linear-gradient(135deg, var(--purple), var(--blue));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      border: 1px solid rgba(139,92,246,.3);
+      padding: 3px 8px; border-radius: 20px;
+    }
+    .nav-right { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+    .pill {
+      font-size: 11px; font-weight: 500; color: var(--muted);
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 20px; padding: 5px 12px;
+    }
+
+    /* ── HERO ── */
+    .hero {
+      position: relative; z-index: 1;
+      text-align: center;
+      padding: 88px 24px 64px;
+    }
+    .hero-eyebrow {
+      display: inline-block;
+      font-size: 11px; font-weight: 600; letter-spacing: 1.2px;
+      text-transform: uppercase;
+      color: var(--purple);
+      background: rgba(139,92,246,.1);
+      border: 1px solid rgba(139,92,246,.25);
+      border-radius: 20px; padding: 5px 14px;
+      margin-bottom: 24px;
+    }
+    .hero h1 {
+      font-size: clamp(36px, 6vw, 64px);
+      font-weight: 900;
+      letter-spacing: -2px;
+      line-height: 1.05;
+      max-width: 700px; margin: 0 auto 20px;
+    }
+    .hero h1 .grad {
+      background: linear-gradient(135deg, #c084fc 0%, #818cf8 50%, #38bdf8 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .hero p {
+      font-size: 16px; color: var(--muted); max-width: 440px;
+      margin: 0 auto 0; line-height: 1.7;
+    }
+
+    /* ── MAIN CARD ── */
+    .main-wrap {
+      position: relative; z-index: 1;
+      max-width: 680px; margin: 0 auto;
+      padding: 0 20px 100px;
+      display: flex; flex-direction: column; gap: 16px;
+    }
+
+    .glass-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 28px;
+      backdrop-filter: blur(12px);
+      transition: border-color .2s;
+    }
+    .glass-card:hover { border-color: rgba(139,92,246,.2); }
+
+    .section-label {
+      font-size: 10px; font-weight: 700; letter-spacing: 1.2px;
+      text-transform: uppercase; color: var(--muted);
+      margin-bottom: 16px;
+    }
+
+    /* ── SOURCE TABS ── */
+    .source-grid {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;
+    }
+    .source-btn {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px 10px;
+      cursor: pointer;
+      color: var(--muted);
+      font-family: 'Inter', sans-serif;
+      font-size: 12px; font-weight: 500;
+      display: flex; flex-direction: column; align-items: center; gap: 8px;
+      transition: all .18s;
+    }
+    .source-btn:hover { border-color: var(--border-hover); color: var(--text); }
+    .source-btn.active {
+      background: rgba(139,92,246,.12);
+      border-color: var(--purple);
+      color: var(--text);
+    }
+    .source-btn .src-icon {
+      width: 28px; height: 28px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .source-btn .src-icon svg { width: 20px; height: 20px; }
+
+    /* ── INPUT ── */
+    .input-wrap { margin-top: 16px; }
+    .url-input-wrap { position:relative; }
+    .url-input-icon {
+      position:absolute; left:14px; top:50%; transform:translateY(-50%);
+      color:var(--muted); pointer-events:none;
+      display:flex; align-items:center;
+    }
+    .url-input-icon svg { width:16px; height:16px; }
+    .url-input {
+      width: 100%;
+      background: rgba(255,255,255,.04);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 15px 18px 15px 40px;
+      color: var(--text);
+      font-family: 'Inter', sans-serif; font-size: 14px;
+      outline: none;
+      transition: border-color .2s, box-shadow .2s;
+    }
+    .url-input:focus {
+      border-color: var(--purple);
+      box-shadow: 0 0 0 3px rgba(139,92,246,.15);
+    }
+    .url-input.has-preview { border-color: rgba(20,184,166,.5); box-shadow: 0 0 0 3px rgba(20,184,166,.12); }
+    .url-input::placeholder { color: rgba(241,245,249,.25); }
+    /* Preview card */
+    .preview-card {
+      margin-top:8px; padding:12px 14px;
+      background:var(--surface2); border:1px solid var(--border);
+      border-radius:12px; display:flex; align-items:center; gap:12px;
+      animation: fadeIn .2s ease;
+    }
+    @keyframes fadeIn { from{opacity:0;transform:translateY(-4px)} to{opacity:1;transform:none} }
+    .preview-thumb {
+      width:64px; height:48px; border-radius:8px; object-fit:cover; flex-shrink:0;
+      background:var(--surface); border:1px solid var(--border);
+    }
+    .preview-thumb-placeholder {
+      width:64px; height:48px; border-radius:8px; flex-shrink:0;
+      background:var(--surface); border:1px solid var(--border);
+      display:flex; align-items:center; justify-content:center; color:var(--muted);
+    }
+    .preview-info { flex:1; min-width:0; }
+    .preview-title {
+      font-size:13px; font-weight:700; color:var(--text);
+      white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+      text-transform:uppercase; letter-spacing:.3px;
+    }
+    .preview-meta { display:flex; gap:12px; margin-top:5px; flex-wrap:wrap; }
+    .preview-meta-item { display:flex; align-items:center; gap:4px; font-size:11px; color:var(--muted); }
+    .preview-meta-item svg { width:12px; height:12px; flex-shrink:0; }
+    .preview-loading {
+      margin-top:8px; padding:10px 14px;
+      background:var(--surface2); border:1px solid var(--border);
+      border-radius:12px; font-size:12px; color:var(--muted);
+      display:flex; align-items:center; gap:8px;
+    }
+
+    /* ── DROP ZONE ── */
+    .drop-zone {
+      border: 1px dashed rgba(255,255,255,.12);
+      border-radius: 10px;
+      padding: 44px 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: all .18s;
+      color: var(--muted);
+    }
+    .drop-zone:hover, .drop-zone.drag-over {
+      border-color: var(--purple);
+      background: rgba(139,92,246,.06);
+      color: var(--text);
+    }
+    .drop-zone-icon {
+      width: 44px; height: 44px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 14px;
+    }
+    .drop-zone-icon svg { width: 20px; height: 20px; stroke: var(--muted); fill: none; }
+    .drop-zone p { font-size: 14px; font-weight: 500; margin-bottom: 4px; }
+    .drop-zone small { font-size: 12px; color: rgba(241,245,249,.25); }
+    #file-input { display: none; }
+    .drop-zone.file-selected {
+      border-color: rgba(34,197,94,.4);
+      background: rgba(34,197,94,.06);
+    }
+    .drop-zone.file-selected .drop-zone-icon svg { stroke: #22c55e; }
+    .drop-zone.file-selected p { color: #86efac; }
+
+    /* ── MODE ── */
+    .mode-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
+    }
+    .mode-btn {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 18px 14px;
+      cursor: pointer;
+      transition: all .18s;
+      text-align: left;
+    }
+    .mode-btn:hover { border-color: rgba(99,102,241,.4); }
+    .mode-btn.active {
+      background: rgba(99,102,241,.1);
+      border-color: var(--blue);
+    }
+    .mode-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--border);
+      margin-bottom: 14px;
+      transition: background .18s;
+    }
+    .mode-btn.active .mode-dot {
+      background: linear-gradient(135deg, var(--purple), var(--blue));
+      box-shadow: 0 0 8px rgba(139,92,246,.6);
+    }
+    .mode-btn .mode-name {
+      font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 4px;
+    }
+    .mode-btn .mode-desc {
+      font-size: 11px; color: var(--muted); line-height: 1.5;
+    }
+
+    /* ── ACTION BUTTON ── */
+    .btn-process {
+      width: 100%;
+      padding: 17px;
+      background: linear-gradient(135deg, var(--purple) 0%, var(--blue) 100%);
+      border: none; border-radius: var(--radius);
+      color: #fff;
+      font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 700;
+      letter-spacing: -.1px;
+      cursor: pointer;
+      position: relative; overflow: hidden;
+      transition: opacity .18s, transform .12s, box-shadow .18s;
+      box-shadow: 0 0 30px rgba(139,92,246,.25);
+    }
+    .btn-process::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: linear-gradient(135deg, rgba(255,255,255,.15) 0%, transparent 60%);
+      opacity: 0; transition: opacity .18s;
+    }
+    .btn-process:hover:not(:disabled)::before { opacity: 1; }
+    .btn-process:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 8px 40px rgba(139,92,246,.4); }
+    .btn-process:active:not(:disabled) { transform: translateY(0); }
+    .btn-process:disabled { opacity: .45; cursor: not-allowed; box-shadow: none; }
+
+    /* ── PROGRESS ── */
+    #progress-card { display: none; }
+    .progress-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 14px;
+    }
+    .progress-status { font-size: 13px; color: var(--muted); }
+    .progress-pct { font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; }
+    .progress-track {
+      height: 3px;
+      background: rgba(255,255,255,.07);
+      border-radius: 99px;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--purple), var(--blue), #38bdf8);
+      background-size: 200% 100%;
+      border-radius: 99px;
+      width: 0%;
+      transition: width .5s cubic-bezier(.4,0,.2,1);
+      animation: shimmer 2s linear infinite;
+    }
+    @keyframes shimmer {
+      0% { background-position: 0% 0; }
+      100% { background-position: 200% 0; }
+    }
+    .progress-step {
+      font-size: 12px; color: var(--muted); margin-top: 10px;
+    }
+
+    /* ── RESULTS ── */
+    #results-card { display: none; }
+    .results-header {
+      display: flex; align-items: center; gap: 8px; margin-bottom: 16px;
+    }
+    .results-badge {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: #22c55e;
+      box-shadow: 0 0 8px #22c55e;
+      flex-shrink: 0;
+    }
+    .file-list { display: flex; flex-direction: column; gap: 8px; }
+    .file-item {
+      background: rgba(255,255,255,.03);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px 16px;
+      display: flex; align-items: center; gap: 14px;
+    }
+    .file-thumb {
+      width: 36px; height: 36px; border-radius: 8px; flex-shrink: 0;
+      background: linear-gradient(135deg, rgba(139,92,246,.3), rgba(99,102,241,.3));
+      border: 1px solid rgba(139,92,246,.2);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .file-thumb svg { width: 16px; height: 16px; stroke: #c084fc; fill: none; }
+    .file-info { flex: 1; min-width: 0; }
+    .file-name {
+      font-size: 13px; font-weight: 500;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .file-size { font-size: 11px; color: var(--muted); margin-top: 2px; }
+    .mixtape-parts-header {
+      font-size: 11px; font-weight: 600; color: var(--purple);
+      text-transform: uppercase; letter-spacing: .08em;
+      padding: 10px 4px 4px; opacity: .8;
+    }
+    .btn-dl {
+      background: rgba(139,92,246,.15);
+      border: 1px solid rgba(139,92,246,.3);
+      border-radius: 8px;
+      color: #c084fc;
+      font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600;
+      padding: 7px 14px; cursor: pointer; flex-shrink: 0;
+      transition: all .18s;
+      letter-spacing: .2px;
+    }
+    .btn-dl:hover {
+      background: rgba(139,92,246,.25);
+      border-color: rgba(139,92,246,.5);
+    }
+
+    /* ── ERROR ── */
+    .error-toast {
+      background: rgba(239,68,68,.08);
+      border: 1px solid rgba(239,68,68,.2);
+      border-radius: 10px;
+      padding: 14px 18px;
+      font-size: 13px; color: #fca5a5;
+      display: flex; align-items: flex-start; gap: 10px;
+    }
+    .error-toast svg { width: 16px; height: 16px; stroke: #f87171; fill: none; flex-shrink: 0; margin-top: 1px; }
+
+    /* ── SETTINGS PANEL ── */
+    .settings-header {
+      display: flex; align-items: center; justify-content: space-between;
+      cursor: pointer; user-select: none;
+      gap: 12px;
+    }
+    .settings-left { display: flex; align-items: center; gap: 12px; }
+    .settings-hint {
+      font-size: 11px; color: var(--muted);
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 20px; padding: 2px 10px;
+      font-weight: 500;
+    }
+    .chevron {
+      width: 20px; height: 20px; color: var(--muted);
+      transition: transform .25s;
+      flex-shrink: 0;
+    }
+    .chevron.open { transform: rotate(180deg); }
+    .chevron svg { width: 100%; height: 100%; }
+    .settings-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
+    }
+    @media (max-width: 560px) { .settings-grid { grid-template-columns: 1fr; } }
+    .setting-item { display: flex; flex-direction: column; gap: 6px; }
+    .setting-label { font-size: 12px; font-weight: 600; color: var(--text); }
+    .setting-desc { font-size: 11px; color: var(--muted); }
+    .setting-input {
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 10px; padding: 10px 14px;
+      color: var(--text); font-size: 14px; font-weight: 500;
+      outline: none; width: 100%; box-sizing: border-box;
+      transition: border-color .2s, box-shadow .2s;
+    }
+    .setting-input:focus {
+      border-color: var(--purple);
+      box-shadow: 0 0 0 3px rgba(139,92,246,.15);
+    }
+    .roblox-hint {
+      font-size: 11px; color: rgba(139,92,246,.75);
+      font-weight: 500; min-height: 16px;
+    }
+    .settings-footer {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-top: 18px; gap: 12px;
+    }
+    .save-status { font-size: 12px; color: #22c55e; font-weight: 500; min-height: 18px; }
+    .save-status.error { color: #f87171; }
+    .btn-save {
+      background: linear-gradient(135deg, var(--purple), var(--indigo));
+      border: none; border-radius: 10px; padding: 10px 22px;
+      color: #fff; font-size: 13px; font-weight: 600; cursor: pointer;
+      transition: opacity .2s, transform .1s;
+    }
+    .btn-save:hover { opacity: .85; }
+    .btn-save:active { transform: scale(.97); }
+
+    /* ── COOKIES ── */
+    .cookies-status-row {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 10px;
+    }
+    .cookies-badge {
+      display: flex; align-items: center; gap: 7px;
+      font-size: 12px; font-weight: 500; color: var(--muted);
+    }
+    .cookies-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--border);
+      flex-shrink: 0;
+      transition: background .3s;
+    }
+    .cookies-dot.active { background: #22c55e; box-shadow: 0 0 6px rgba(34,197,94,.5); }
+    .btn-clear-cookies {
+      background: rgba(239,68,68,.12); border: 1px solid rgba(239,68,68,.3);
+      border-radius: 8px; padding: 5px 12px;
+      color: #f87171; font-size: 11px; font-weight: 600; cursor: pointer;
+      transition: background .2s;
+    }
+    .btn-clear-cookies:hover { background: rgba(239,68,68,.22); }
+    .cookies-textarea {
+      width: 100%; box-sizing: border-box;
+      min-height: 110px; max-height: 220px; resize: vertical;
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 10px; padding: 12px 14px;
+      color: var(--text); font-size: 11px; font-family: 'Courier New', monospace;
+      outline: none; line-height: 1.6;
+      transition: border-color .2s, box-shadow .2s;
+    }
+    .cookies-textarea:focus {
+      border-color: var(--purple);
+      box-shadow: 0 0 0 3px rgba(139,92,246,.15);
+    }
+    .cookies-textarea::placeholder { color: rgba(148,163,184,.3); }
+    .cookies-dropzone {
+      width: 100%; box-sizing: border-box;
+      border: 2px dashed var(--border);
+      border-radius: 10px; padding: 18px 14px;
+      text-align: center; cursor: pointer;
+      color: var(--muted); font-size: 12px;
+      transition: border-color .2s, background .2s;
+      margin-bottom: 8px;
+    }
+    .cookies-dropzone:hover, .cookies-dropzone.drag-over {
+      border-color: var(--purple);
+      background: rgba(139,92,246,.06);
+      color: var(--text);
+    }
+    .cookies-dropzone svg { margin-bottom: 6px; opacity: .5; }
+    .cookies-dropzone.drag-over svg { opacity: 1; }
+
+    /* ── ROBLOX INFO CARD ── */
+    .roblox-card {
+      background: rgba(99,102,241,.08);
+      border: 1px solid rgba(99,102,241,.25);
+      border-radius: 16px; padding: 16px 20px;
+      display: flex; align-items: flex-start; gap: 14px;
+      margin-bottom: 0;
+    }
+    .roblox-icon {
+      width: 36px; height: 36px; border-radius: 10px; flex-shrink: 0;
+      background: rgba(99,102,241,.15); display: flex; align-items: center; justify-content: center;
+    }
+    .roblox-icon svg { width: 18px; height: 18px; stroke: var(--indigo); }
+    .roblox-title { font-size: 12px; font-weight: 700; color: var(--text); margin-bottom: 6px; letter-spacing: .3px; }
+    .roblox-text { font-size: 12px; color: var(--muted); line-height: 1.7; }
+    .roblox-text strong { color: #c4b5fd; }
+
+    /* ── SLIDER ── */
+    .slider-row { display:flex; align-items:center; gap:10px; }
+    .slider-val {
+      min-width:42px; text-align:right; font-size:13px; font-weight:700;
+      color:var(--purple); flex-shrink:0;
+    }
+    input[type=range] {
+      -webkit-appearance:none; appearance:none;
+      width:100%; height:5px; border-radius:99px;
+      background:var(--surface2); border:1px solid var(--border);
+      outline:none; cursor:pointer;
+    }
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance:none; appearance:none;
+      width:16px; height:16px; border-radius:50%;
+      background:var(--purple); cursor:pointer;
+      box-shadow:0 0 6px rgba(139,92,246,.5);
+      transition:transform .15s;
+    }
+    input[type=range]::-webkit-slider-thumb:hover { transform:scale(1.2); }
+    input[type=range]::-moz-range-thumb {
+      width:16px; height:16px; border-radius:50%;
+      background:var(--purple); cursor:pointer; border:none;
+    }
+
+    /* ── ROBLOX APPROVAL NOTIFICATIONS ── */
+    #rbx-notifications {
+      position:fixed; top:20px; right:20px; z-index:3000;
+      display:flex; flex-direction:column; gap:8px;
+      max-width:320px; pointer-events:none;
+    }
+    .rbx-notif {
+      background:#0f0f1a; border:1px solid rgba(134,239,172,.35);
+      border-radius:14px; padding:14px 16px;
+      display:flex; gap:12px; align-items:flex-start;
+      box-shadow:0 8px 32px rgba(0,0,0,.5), 0 0 20px rgba(134,239,172,.1);
+      pointer-events:all; cursor:pointer;
+      animation: slideIn .3s ease;
+    }
+    @keyframes slideIn {
+      from { opacity:0; transform:translateX(40px); }
+      to   { opacity:1; transform:none; }
+    }
+    .rbx-notif-icon {
+      width:32px; height:32px; border-radius:8px; flex-shrink:0;
+      background:rgba(134,239,172,.15); border:1px solid rgba(134,239,172,.3);
+      display:flex; align-items:center; justify-content:center; font-size:14px;
+    }
+    .rbx-notif-body { flex:1; min-width:0; }
+    .rbx-notif-title { font-size:11px; font-weight:700; color:#86efac; margin-bottom:3px; }
+    .rbx-notif-name  { font-size:12px; font-weight:600; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .rbx-notif-id    { font-size:11px; color:var(--muted); margin-top:2px; user-select:all; }
+
+    /* ── ROBLOX THUMBNAIL PANEL ── */
+    .rbx-thumb-panel {
+      margin-top:8px; padding:10px 12px;
+      background:var(--surface2); border:1px solid var(--border);
+      border-radius:10px; display:flex; align-items:center; gap:12px;
+    }
+    .rbx-thumb-img {
+      width:52px; height:52px; border-radius:8px; object-fit:cover; flex-shrink:0;
+      background:var(--surface); border:1px solid var(--border);
+    }
+    .rbx-thumb-info { flex:1; min-width:0; }
+    .rbx-thumb-badge {
+      display:inline-flex; align-items:center; gap:5px;
+      padding:3px 10px; border-radius:99px; font-size:11px; font-weight:700;
+      letter-spacing:.5px; text-transform:uppercase; margin-bottom:4px;
+    }
+    .rbx-thumb-badge.pending  { background:rgba(251,191,36,.15); color:#fbbf24; border:1px solid rgba(251,191,36,.3); }
+    .rbx-thumb-badge.accepted { background:rgba(134,239,172,.15); color:#86efac; border:1px solid rgba(134,239,172,.3); }
+    .rbx-thumb-badge.rejected { background:rgba(248,113,113,.15); color:#f87171; border:1px solid rgba(248,113,113,.3); }
+    .rbx-thumb-dot {
+      width:6px; height:6px; border-radius:50%;
+      background:currentColor; flex-shrink:0;
+    }
+    .rbx-thumb-dot.pending  { animation:pulse 1.5s ease infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+    .rbx-thumb-name { font-size:12px; font-weight:600; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .rbx-thumb-id   { font-size:11px; color:var(--muted); margin-top:1px; user-select:all; }
+
+    /* ── ROBLOX NAME MODAL ── */
+    .rbx-name-modal { max-width:380px; border-color:rgba(139,92,246,.35); box-shadow:0 0 60px rgba(139,92,246,.15); }
+    .rbx-name-label { font-size:11px; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:.6px; align-self:flex-start; }
+    .rbx-name-input {
+      width:100%; box-sizing:border-box;
+      background:var(--surface2); border:1px solid var(--border);
+      border-radius:10px; padding:12px 14px;
+      color:var(--text); font-size:14px; font-weight:500; font-family:'Inter',sans-serif;
+      outline:none; transition:border-color .2s, box-shadow .2s;
+    }
+    .rbx-name-input:focus { border-color:var(--purple); box-shadow:0 0 0 3px rgba(139,92,246,.15); }
+    .rbx-name-hint { font-size:11px; color:var(--muted); align-self:flex-start; }
+    .rbx-name-submit {
+      width:100%; padding:13px; border-radius:12px; font-size:14px; font-weight:700;
+      border:none; background:linear-gradient(135deg,var(--purple),var(--blue));
+      color:#fff; cursor:pointer; transition:opacity .2s;
+    }
+    .rbx-name-submit:hover { opacity:.88; }
+    .rbx-name-cancel {
+      font-size:12px; color:var(--muted); cursor:pointer;
+      background:none; border:none; text-decoration:underline; opacity:.6;
+    }
+    .rbx-name-cancel:hover { opacity:1; }
+
+    /* ── WARNING MODAL ── */
+    .modal-overlay {
+      position:fixed; inset:0; z-index:999;
+      background:rgba(0,0,0,.75); backdrop-filter:blur(4px);
+      display:flex; align-items:center; justify-content:center;
+      opacity:0; pointer-events:none; transition:opacity .2s;
+    }
+    .modal-overlay.open { opacity:1; pointer-events:all; }
+    .modal-box {
+      background:#0f0f1a; border:1px solid rgba(251,146,60,.35);
+      border-radius:20px; padding:32px 28px; max-width:420px; width:90%;
+      display:flex; flex-direction:column; align-items:center; gap:16px;
+      text-align:center; box-shadow:0 0 60px rgba(251,146,60,.15);
+    }
+    .modal-icon {
+      width:52px; height:52px; border-radius:50%;
+      background:rgba(251,146,60,.15); border:1px solid rgba(251,146,60,.3);
+      display:flex; align-items:center; justify-content:center;
+    }
+    .modal-icon svg { width:24px; height:24px; stroke:#fb923c; }
+    .modal-title { font-size:16px; font-weight:700; color:#fb923c; }
+    .modal-desc { font-size:13px; color:var(--muted); line-height:1.7; }
+    .modal-progress-track {
+      width:100%; height:4px; border-radius:99px;
+      background:var(--surface2); overflow:hidden;
+    }
+    .modal-progress-fill {
+      height:100%; border-radius:99px;
+      background:linear-gradient(90deg,#fb923c,#f97316);
+      width:0%; transition:width .1s linear;
+    }
+    .modal-continue {
+      width:100%; padding:13px; border-radius:12px; font-size:14px; font-weight:700;
+      border:1px solid rgba(251,146,60,.4); background:rgba(251,146,60,.1);
+      color:#fb923c; cursor:pointer; transition:all .2s;
+    }
+    .modal-continue:not(:disabled):hover { background:rgba(251,146,60,.2); }
+    .modal-continue:disabled { opacity:.45; cursor:not-allowed; }
+    .modal-reset {
+      width:100%; padding:13px; border-radius:12px; font-size:14px; font-weight:700;
+      border:1px solid var(--border); background:var(--surface2);
+      color:var(--text); cursor:pointer; transition:all .2s;
+    }
+    .modal-reset:hover { background:var(--surface); }
+    .modal-skip {
+      font-size:12px; color:var(--muted); cursor:pointer;
+      background:none; border:none; text-decoration:underline;
+      opacity:.6; transition:opacity .2s;
+    }
+    .modal-skip:hover { opacity:1; }
+
+    /* ── HISTORY ── */
+    .history-empty { text-align:center; padding:24px 0; color:var(--muted); font-size:13px; }
+    .history-item {
+      display:flex; align-items:center; gap:12px;
+      padding:10px 0; border-bottom:1px solid var(--border);
+    }
+    .history-item:last-child { border-bottom:none; padding-bottom:0; }
+    .history-badge {
+      padding:3px 8px; border-radius:6px; font-size:10px; font-weight:700;
+      letter-spacing:.4px; text-transform:uppercase; flex-shrink:0;
+    }
+    .history-badge.normal   { background:rgba(99,102,241,.15); color:#818cf8; }
+    .history-badge.bypassed { background:rgba(139,92,246,.15); color:#a78bfa; }
+    .history-badge.mixtape  { background:rgba(236,72,153,.15);  color:#f472b6; }
+    .history-badge.upload   { background:rgba(20,184,166,.15);  color:#2dd4bf; }
+    .history-info { flex:1; min-width:0; }
+    .history-title {
+      font-size:12px; font-weight:600; color:var(--text);
+      white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    }
+    .history-meta { font-size:11px; color:var(--muted); margin-top:2px; }
+    .history-time { font-size:11px; color:var(--muted); flex-shrink:0; }
+    .btn-clear-history {
+      background:rgba(239,68,68,.1); border:1px solid rgba(239,68,68,.25);
+      border-radius:8px; padding:5px 12px; color:#f87171;
+      font-size:11px; font-weight:600; cursor:pointer; transition:background .2s;
+    }
+    .btn-clear-history:hover { background:rgba(239,68,68,.2); }
+    .rbx-hist-item {
+      display:flex; align-items:center; gap:10px;
+      padding:10px 0; border-bottom:1px solid rgba(255,255,255,.06);
+      font-size:13px;
+    }
+    .rbx-hist-item:last-child { border-bottom:none; padding-bottom:0; }
+    .rbx-hist-badge {
+      font-size:10px; font-weight:700; letter-spacing:.05em;
+      padding:2px 8px; border-radius:20px; flex-shrink:0; text-transform:uppercase;
+    }
+    .rbx-hist-badge.uploading { background:rgba(99,102,241,.15); color:#818cf8; }
+    .rbx-hist-badge.pending   { background:rgba(234,179,8,.15);  color:#facc15; }
+    .rbx-hist-badge.accepted  { background:rgba(34,197,94,.15);  color:#4ade80; }
+    .rbx-hist-badge.rejected  { background:rgba(239,68,68,.15);  color:#f87171; }
+    .rbx-hist-badge.error     { background:rgba(239,68,68,.1);   color:#f87171; }
+    .rbx-hist-name { font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .rbx-hist-id   { font-size:10px; color:var(--muted); user-select:all; margin-top:2px; }
+
+    /* ── ROBLOX UPLOAD CONFIG ── */
+    .rbx-tabs { display:flex; gap:6px; margin-bottom:4px; }
+    .rbx-tab {
+      padding:6px 14px; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer;
+      background:var(--surface2); border:1px solid var(--border); color:var(--muted);
+      transition:all .2s;
+    }
+    .rbx-tab.active { background:rgba(139,92,246,.15); border-color:var(--purple); color:var(--purple); }
+    .rbx-tab-content { margin-top:14px; }
+    .rbx-oauth-connected {
+      margin-top:10px; padding:10px 14px;
+      background:rgba(34,197,94,.08); border:1px solid rgba(34,197,94,.25);
+      border-radius:10px; font-size:12px; color:#86efac;
+      display:flex; align-items:center; justify-content:space-between;
+    }
+    .rbx-disconnect-btn {
+      background:none; border:none; color:#f87171; cursor:pointer;
+      font-size:11px; text-decoration:underline;
+    }
+    /* Upload to Roblox button in file list */
+    .btn-rbx-upload {
+      padding:8px 14px; border-radius:10px; font-size:12px; font-weight:600;
+      cursor:pointer; border:1px solid rgba(139,92,246,.4);
+      background:rgba(139,92,246,.12); color:var(--purple);
+      transition:all .2s; white-space:nowrap; flex-shrink:0;
+    }
+    .btn-rbx-upload:hover { background:rgba(139,92,246,.22); border-color:var(--purple); }
+    .btn-rbx-upload:disabled { opacity:.5; cursor:not-allowed; }
+    .rbx-upload-status {
+      margin-top:8px; padding:8px 12px; border-radius:8px; font-size:11px;
+      background:var(--surface2); border:1px solid var(--border);
+      color:var(--muted); display:none;
+    }
+    .rbx-upload-status.uploading { color:#fbbf24; border-color:rgba(251,191,36,.3); }
+    .rbx-upload-status.pending   { color:#60a5fa; border-color:rgba(96,165,250,.3); }
+    .rbx-upload-status.done      { color:#86efac; border-color:rgba(134,239,172,.3); }
+    .rbx-upload-status.error     { color:#f87171; border-color:rgba(248,113,113,.3); }
+    .rbx-target-row { display:flex; gap:6px; margin-bottom:10px; }
+    .rbx-target-btn {
+      padding:5px 12px; border-radius:7px; font-size:11px; font-weight:600; cursor:pointer;
+      background:var(--surface2); border:1px solid var(--border); color:var(--muted);
+      transition:all .2s;
+    }
+    .rbx-target-btn.active { background:rgba(139,92,246,.15); border-color:var(--purple); color:var(--purple); }
+
+    /* ── LOG TIMELINE ── */
+    .log-wrap {
+      margin-top: 20px;
+      border-top: 1px solid var(--border);
+      padding-top: 18px;
+    }
+    .log-title {
+      font-size: 10px; font-weight: 700; letter-spacing: 1.2px;
+      text-transform: uppercase; color: var(--muted);
+      margin-bottom: 14px;
+    }
+    .log-list { display: flex; flex-direction: column; gap: 0; }
+    .log-item {
+      display: flex; align-items: flex-start; gap: 14px;
+      position: relative;
+      padding-bottom: 16px;
+    }
+    .log-item:last-child { padding-bottom: 0; }
+    /* vertical connector line */
+    .log-item:not(:last-child)::before {
+      content: '';
+      position: absolute;
+      left: 7px; top: 18px;
+      width: 1px;
+      bottom: 0;
+      background: var(--border);
+    }
+    .log-dot {
+      width: 15px; height: 15px; border-radius: 50%; flex-shrink: 0;
+      margin-top: 1px;
+      display: flex; align-items: center; justify-content: center;
+      position: relative; z-index: 1;
+      transition: all .3s;
+    }
+    .log-dot.pending {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+    }
+    .log-dot.active {
+      background: rgba(139,92,246,.2);
+      border: 1px solid var(--purple);
+      box-shadow: 0 0 10px rgba(139,92,246,.4);
+      animation: dot-pulse 1.2s ease-in-out infinite;
+    }
+    @keyframes dot-pulse {
+      0%, 100% { box-shadow: 0 0 10px rgba(139,92,246,.4); }
+      50%       { box-shadow: 0 0 20px rgba(139,92,246,.7); }
+    }
+    .log-dot.done {
+      background: rgba(34,197,94,.15);
+      border: 1px solid rgba(34,197,94,.5);
+    }
+    .log-dot.error {
+      background: rgba(239,68,68,.15);
+      border: 1px solid rgba(239,68,68,.5);
+    }
+    /* dot inner mark */
+    .log-dot.active::after {
+      content: ''; width: 5px; height: 5px; border-radius: 50%;
+      background: var(--purple);
+    }
+    .log-dot.done::after {
+      content: '';
+      width: 6px; height: 4px;
+      border-left: 1.5px solid #22c55e;
+      border-bottom: 1.5px solid #22c55e;
+      transform: rotate(-45deg) translate(1px, -1px);
+    }
+    .log-dot.error::after {
+      content: '×'; font-size: 10px; color: #f87171; line-height: 1;
+    }
+    .log-body { flex: 1; min-width: 0; }
+    .log-label {
+      font-size: 13px; font-weight: 500; color: var(--text);
+      line-height: 1.4;
+    }
+    .log-label.muted { color: var(--muted); }
+    .log-detail {
+      font-size: 11px; color: rgba(139,92,246,.8);
+      margin-top: 2px; font-weight: 500;
+    }
+    .log-time {
+      font-size: 10px; color: rgba(241,245,249,.2);
+      font-variant-numeric: tabular-nums;
+      flex-shrink: 0; margin-top: 2px;
+    }
+
+    /* ── FOOTER ── */
+    footer {
+      position: relative; z-index: 1;
+      text-align: center;
+      padding: 24px;
+      font-size: 12px; color: rgba(241,245,249,.2);
+      border-top: 1px solid var(--border);
+    }
+    footer span { color: rgba(139,92,246,.7); }
+
+    /* ── DIVIDER ── */
+    .divider {
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--border), transparent);
+      margin: 4px 0;
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a class="nav-logo" href="/">
+    <div class="logo-mark">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;">
+        <path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>
+      </svg>
+    </div>
+    <span class="nav-wordmark">RKDKCW</span>
+  </a>
+  <span class="nav-tag">Audio Bypass</span>
+  <div class="nav-right">
+    {% if is_premium %}
+      <span class="nav-tag" style="background: linear-gradient(135deg, #f59e0b, #fbbf24); border-color: #f59e0b; color: #fff; -webkit-text-fill-color: #fff;">PREMIUM</span>
+    {% endif %}
+    <span class="pill" style="color: var(--purple); font-weight: 700;">{{ user }}</span>
+    <a href="/logout" style="text-decoration: none; background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.2); color: #f87171; padding: 6px 12px; border-radius: 8px; font-size: 11px; font-weight: 700;">Logout</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-eyebrow">Welcome back, {{ user }}</div>
+  <h1>Audio Bypass<br><span class="grad">Dashboard.</span></h1>
+  <p>Download, bypass, dan split audio secara instan dengan satu klik.</p>
+</section>
+
+<!-- MAIN FORM -->
+<div class="main-wrap">
+
+  <!-- Source -->
+  <div class="glass-card">
+    <div class="section-label">Sumber Audio</div>
+    <div class="source-grid">
+
+      <button class="source-btn active" data-source="youtube">
+        <div class="src-icon">
+          <svg viewBox="0 0 24 24" fill="currentColor" style="color:#e2e8f0;opacity:.8;">
+            <path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.5 12 3.5 12 3.5s-7.5 0-9.4.6A3 3 0 0 0 .5 6.2C0 8.1 0 12 0 12s0 3.9.6 5.8a3 3 0 0 0 2.1 2.1C4.5 20.5 12 20.5 12 20.5s7.5 0 9.4-.6a3 3 0 0 0 2.1-2.1C24 15.9 24 12 24 12s0-3.9-.5-5.8zM9.75 15.5V8.5l6.5 3.5-6.5 3.5z"/>
+          </svg>
+        </div>
+        YouTube
+      </button>
+
+      <button class="source-btn" data-source="soundcloud">
+        <div class="src-icon">
+          <svg viewBox="0 0 24 24" fill="currentColor" style="color:#e2e8f0;opacity:.8;">
+            <path d="M1.2 15.4c-.1.5-.2 1.1-.2 1.6 0 .5.1 1 .2 1.5.1.3.4.5.8.5s.7-.2.8-.5l.3-1.5-.3-1.6c-.1-.3-.4-.5-.8-.5s-.7.2-.8.5zm2.8-.8c-.1.4-.2.9-.2 1.4 0 .5.1 1 .2 1.4.1.3.4.5.8.5s.7-.2.8-.5l.2-1.4-.2-1.4c-.1-.3-.4-.5-.8-.5s-.7.2-.8.5zM22 12c-1.1 0-2 .9-2 2v3c0 1.1.9 2 2 2s2-.9 2-2v-3c0-1.1-.9-2-2-2zm-3 1c-.6 0-1 .4-1 1v3c0 .6.4 1 1 1s1-.4 1-1v-3c0-.6-.4-1-1-1zm-3-3c-.6 0-1 .5-1 1.1v5.8c0 .6.4 1.1 1 1.1s1-.5 1-1.1v-5.8c0-.6-.4-1.1-1-1.1zM8 10.5c-.6 0-1 .5-1 1.2v5.6c0 .7.4 1.2 1 1.2s1-.5 1-1.2v-5.6c0-.7-.4-1.2-1-1.2z"/>
+          </svg>
+        </div>
+        SoundCloud
+      </button>
+
+      <button class="source-btn" data-source="spotify">
+        <div class="src-icon">
+          <svg viewBox="0 0 24 24" fill="currentColor" style="color:#e2e8f0;opacity:.8;">
+            <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/>
+          </svg>
+        </div>
+        Spotify
+      </button>
+
+      <button class="source-btn" data-source="upload">
+        <div class="src-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="opacity:.8;">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+          </svg>
+        </div>
+        Upload File
+      </button>
+
+    </div>
+
+    <div class="input-wrap">
+      <div id="url-section">
+        <div class="url-input-wrap">
+          <span class="url-input-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>
+            </svg>
+          </span>
+          <input type="text" class="url-input" id="url-input" placeholder="Paste link YouTube, SoundCloud, atau Spotify..."/>
+        </div>
+        <div id="url-preview"></div>
+      </div>
+      <div id="upload-section" style="display:none;">
+        <div class="drop-zone" id="drop-zone">
+          <div class="drop-zone-icon">
+            <svg viewBox="0 0 24 24" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"/><path d="M12 12v9"/><path d="m16 16-4-4-4 4"/>
+            </svg>
+          </div>
+          <p>Drag &amp; drop file audio</p>
+          <small>MP3, WAV, OGG, M4A, FLAC — maks 100MB</small>
+        </div>
+        <input type="file" id="file-input" accept=".mp3,.wav,.ogg,.m4a,.flac"/>
+      </div>
+    </div>
+  </div>
+
+  <!-- Mode -->
+  <div class="glass-card">
+    <div class="section-label">Mode Pemrosesan</div>
+    <div class="mode-grid">
+      <button class="mode-btn" data-mode="normal">
+        <div class="mode-dot"></div>
+        <div class="mode-name">Normal</div>
+        <div class="mode-desc">Download langsung tanpa modifikasi audio</div>
+      </button>
+      <button class="mode-btn active" data-mode="bypassed">
+        <div class="mode-dot"></div>
+        <div class="mode-name">Bypassed</div>
+        <div class="mode-desc">Speed up + amplify, output OGG terkompresi</div>
+      </button>
+      <button class="mode-btn" data-mode="mixtape">
+        <div class="mode-dot"></div>
+        <div class="mode-name">Mixtape</div>
+        <div class="mode-desc">Split 15 menit per track, semua di-bypass</div>
+      </button>
+    </div>
+  </div>
+
+  <!-- Settings Panel -->
+  <div class="glass-card" id="settings-card">
+    <div class="settings-header" id="settings-toggle">
+      <div class="settings-left">
+        <div class="section-label" style="margin:0;">Bypass Settings</div>
+        <span class="settings-hint" id="settings-hint">Loading...</span>
+      </div>
+      <div class="chevron" id="chevron">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+    </div>
+    <div class="settings-body" id="settings-body" style="display:none;">
+      <div class="divider" style="margin: 16px 0;"></div>
+      <div class="settings-grid">
+        <div class="setting-item">
+          <label class="setting-label">Speed Multiplier</label>
+          <div class="setting-desc">Faktor percepatan audio saat bypass</div>
+          <div class="slider-row">
+            <input type="range" id="inp-speed" min="0.5" max="10" step="0.001" value="2.253"/>
+            <span class="slider-val" id="val-speed">2.253</span>
+          </div>
+          <div class="roblox-hint" id="roblox-hint-speed"></div>
+        </div>
+        <div class="setting-item">
+          <label class="setting-label">Amplify (dB)</label>
+          <div class="setting-desc">Penyesuaian volume output</div>
+          <div class="slider-row">
+            <input type="range" id="inp-amplify" min="-30" max="30" step="1" value="-2"/>
+            <span class="slider-val" id="val-amplify">-2 dB</span>
+          </div>
+        </div>
+      </div>
+      <div class="settings-footer">
+        <div class="save-status" id="save-status"></div>
+        <button class="btn-save" id="btn-save">Simpan Perubahan</button>
+      </div>
+
+      <!-- Cookies sub-section -->
+      <div class="divider" style="margin: 20px 0 16px;"></div>
+      <div class="section-label" style="margin-bottom:8px;">YouTube Cookies</div>
+      <div class="setting-desc" style="margin-bottom:12px;">
+        Tempel konten <code style="background:var(--surface2);border-radius:4px;padding:1px 5px;font-size:11px;">cookies.txt</code> format Netscape di sini agar yt-dlp bisa bypass autentikasi YouTube.
+        Cookies disimpan di server, tidak dikirim ke pihak lain.
+      </div>
+      <div class="cookies-status-row">
+        <div class="cookies-badge" id="cookies-badge">
+          <span class="cookies-dot" id="cookies-dot"></span>
+          <span id="cookies-label">Memuat...</span>
+        </div>
+        <button class="btn-clear-cookies" id="btn-clear-cookies" style="display:none;">Hapus Cookies</button>
+      </div>
+      <div class="cookies-dropzone" id="cookies-dropzone">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+        </svg>
+        <div>Drag &amp; drop <strong>cookies.txt</strong> ke sini</div>
+        <div style="margin-top:4px;font-size:11px;opacity:.6;">atau <span style="color:var(--purple);cursor:pointer;" id="cookies-browse">klik untuk pilih file</span></div>
+        <input type="file" id="cookies-file-input" accept=".txt" style="display:none;">
+      </div>
+      <textarea class="cookies-textarea" id="cookies-textarea" placeholder="# Netscape HTTP Cookie File&#10;.youtube.com        TRUE    /       TRUE    1999999999      VISITOR_INFO1_LIVE      ...&#10;.youtube.com    TRUE    /       FALSE   1999999999      YSC     ...&#10;..."></textarea>
+      <div class="settings-footer" style="margin-top:10px;">
+        <div class="save-status" id="cookies-save-status"></div>
+        <button class="btn-save" id="btn-save-cookies">Simpan Cookies</button>
+      </div>
+
+      <!-- Roblox Upload Config -->
+      <div class="divider" style="margin:24px 0 16px;"></div>
+      <div class="section-label" style="margin-bottom:4px;">Upload ke Roblox</div>
+      <div class="setting-desc" style="margin-bottom:14px;">
+        Upload audio langsung ke Roblox setelah diproses. Buat API Key di
+        <a href="https://create.roblox.com/dashboard/credentials" target="_blank" style="color:var(--purple);">create.roblox.com/dashboard/credentials</a>
+        (Scope: Assets Read + Write).
+      </div>
+
+      <div class="rbx-tabs">
+        <button class="rbx-tab active" data-rbxtab="personal">Personal</button>
+        <button class="rbx-tab" data-rbxtab="group">Group</button>
+        <button class="rbx-tab" data-rbxtab="oauth">OAuth2</button>
+      </div>
+
+      <!-- Personal tab -->
+      <div class="rbx-tab-content" id="rtab-personal">
+
+        <!-- How to get API Key guide -->
+        <div style="margin-top:14px;padding:14px 16px;background:rgba(139,92,246,.06);border:1px solid rgba(139,92,246,.18);border-radius:12px;">
+          <div style="font-size:11px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--purple);margin-bottom:10px;">How to Get Your API Key</div>
+          <ol style="padding-left:16px;margin:0;display:flex;flex-direction:column;gap:7px;">
+            <li style="font-size:12px;color:var(--muted);line-height:1.5;">Klik tombol <strong style="color:var(--text);">"Create API Key"</strong> di <a href="https://create.roblox.com/dashboard/credentials" target="_blank" style="color:var(--purple);">Roblox Creator Hub</a></li>
+            <li style="font-size:12px;color:var(--muted);line-height:1.5;">Set nama untuk API key kamu (contoh: <strong style="color:var(--text);">"RKDKCW ASSETS"</strong>)</li>
+            <li style="font-size:12px;color:var(--muted);line-height:1.5;">Tambahkan permission <strong style="color:var(--text);">Assets:Read</strong> dan <strong style="color:var(--text);">Assets:Write</strong> (untuk deteksi moderasi)</li>
+            <li style="font-size:12px;color:var(--muted);line-height:1.5;">Klik tombol <strong style="color:var(--text);">"Save & Generate Key"</strong></li>
+            <li style="font-size:12px;color:var(--muted);line-height:1.5;">Copy API key yang muncul — <strong style="color:#fbbf24;">kamu tidak bisa melihatnya lagi!</strong></li>
+            <li style="font-size:12px;color:var(--muted);line-height:1.5;">Paste API key ke form di bawah lalu klik <strong style="color:var(--text);">"Simpan"</strong></li>
+          </ol>
+        </div>
+
+        <div class="settings-grid" style="margin-top:14px;">
+          <div class="setting-item">
+            <label class="setting-label">Roblox User ID</label>
+            <input type="text" class="setting-input" id="rbx-user-id" placeholder="9217554647"/>
+            <div class="roblox-hint">Contoh: 9217554647</div>
+          </div>
+          <div class="setting-item">
+            <label class="setting-label">API Key</label>
+            <input type="password" class="setting-input" id="rbx-api-key" placeholder="Kosongkan jika tidak ingin mengubah"/>
+          </div>
+        </div>
+        <div class="settings-footer" style="margin-top:12px;">
+          <div class="save-status" id="rbx-personal-status"></div>
+          <button class="btn-save" id="btn-save-rbx-personal">Simpan Roblox Config</button>
+        </div>
+      </div>
+
+      <!-- Group tab -->
+      <div class="rbx-tab-content" id="rtab-group" style="display:none;">
+        <div class="setting-desc" style="margin-bottom:12px;">
+          Buat API key khusus group di pengaturan group Roblox kamu (Scope: Assets Write). Berbeda dengan API key personal.
+        </div>
+        <div class="settings-grid">
+          <div class="setting-item">
+            <label class="setting-label">Roblox Group ID</label>
+            <input type="text" class="setting-input" id="rbx-group-id" placeholder="12345678"/>
+            <div class="roblox-hint">ID group dari URL: roblox.com/groups/[ID]</div>
+          </div>
+          <div class="setting-item">
+            <label class="setting-label">Group API Key</label>
+            <input type="password" class="setting-input" id="rbx-group-api-key" placeholder="API key dari pengaturan group"/>
+            <div class="roblox-hint">API key yang dibuat dari pengaturan group, bukan akun personal</div>
+          </div>
+        </div>
+        <div class="settings-footer" style="margin-top:12px;">
+          <div class="save-status" id="rbx-group-status"></div>
+          <button class="btn-save" id="btn-save-rbx-group">Simpan Group Config</button>
+        </div>
+      </div>
+
+      <!-- OAuth2 tab -->
+      <div class="rbx-tab-content" id="rtab-oauth" style="display:none;">
+        <div class="setting-desc" style="margin-bottom:12px;">
+          Hubungkan akun Roblox via OAuth2. Buat OAuth app di
+          <a href="https://create.roblox.com/dashboard/credentials" target="_blank" style="color:var(--purple);">Roblox Creator Dashboard</a>
+          dengan redirect URI:
+          <code style="background:var(--surface2);border-radius:4px;padding:1px 6px;font-size:11px;color:#c4b5fd;">http://localhost:5000/roblox/callback</code>
+        </div>
+        <div class="settings-grid">
+          <div class="setting-item">
+            <label class="setting-label">Client ID</label>
+            <input type="text" class="setting-input" id="rbx-client-id" placeholder="Client ID dari OAuth app"/>
+          </div>
+          <div class="setting-item">
+            <label class="setting-label">Client Secret</label>
+            <input type="password" class="setting-input" id="rbx-client-secret" placeholder="Kosongkan jika tidak ingin mengubah"/>
+          </div>
+        </div>
+        <div class="settings-footer" style="margin-top:12px;">
+          <div class="save-status" id="rbx-oauth-status"></div>
+          <div style="display:flex;gap:8px;">
+            <button class="btn-save" id="btn-save-rbx-oauth" style="background:rgba(139,92,246,.15);border:1px solid var(--purple);color:var(--purple);">Simpan</button>
+            <button class="btn-save" id="btn-rbx-connect">Connect Akun Roblox</button>
+          </div>
+        </div>
+        <div class="rbx-oauth-connected" id="rbx-oauth-connected" style="display:none;">
+          <span>✓ Terhubung sebagai <strong id="rbx-oauth-username"></strong></span>
+          <button class="rbx-disconnect-btn" id="btn-rbx-disconnect">Disconnect</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- CTA -->
+  <button class="btn-process" id="btn-process">Process Audio</button>
+
+  <!-- Progress + Log -->
+  <div class="glass-card" id="progress-card">
+    <div class="progress-header">
+      <span class="progress-status" id="progress-status">Memproses...</span>
+      <span class="progress-pct" id="progress-pct">0%</span>
+    </div>
+    <div class="progress-track">
+      <div class="progress-fill" id="progress-bar"></div>
+    </div>
+
+    <!-- Live log timeline -->
+    <div class="log-wrap" id="log-wrap" style="display:none;">
+      <div class="log-title">Process Log</div>
+      <div class="log-list" id="log-list"></div>
+    </div>
+  </div>
+
+  <!-- Roblox Info (shown after processing) -->
+  <div class="roblox-card" id="roblox-card" style="display:none;">
+    <div class="roblox-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+      </svg>
+    </div>
+    <div class="roblox-body">
+      <div class="roblox-title">Roblox Playback Info</div>
+      <div class="roblox-text" id="roblox-text"></div>
+    </div>
+  </div>
+
+  <!-- Results -->
+  <div class="glass-card" id="results-card">
+    <div class="results-header">
+      <div class="results-badge"></div>
+      <span style="font-size:13px;font-weight:600;">File Siap Diunduh</span>
+    </div>
+    <div class="divider" style="margin-bottom:16px;"></div>
+    <div class="file-list" id="file-list"></div>
+
+    <!-- Uploaded IDs Section -->
+    <div id="uploaded-ids-section" style="display:none; margin-top:16px; background:rgba(139,92,246,.08); border:1px solid rgba(139,92,246,.25); border-radius:12px; padding:16px;">
+      <div style="font-size:13px; font-weight:700; color:#c4b5fd; margin-bottom:8px;">Uploaded Asset IDs</div>
+      <textarea id="uploaded-ids-textarea" readonly style="width:100%; height:120px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); padding:10px; font-family:monospace; font-size:13px; outline:none; margin-bottom:10px; resize:vertical; line-height:1.5;"></textarea>
+      <button id="btn-copy-ids" style="width:100%; padding:12px; border-radius:8px; background:linear-gradient(135deg,var(--purple),var(--blue)); color:#fff; font-weight:700; letter-spacing:1px; border:none; cursor:pointer; transition:opacity .2s;">COPY TO CLIPBOARD!</button>
+    </div>
+  </div>
+
+</div>
+
+<!-- History -->
+<div class="glass-card" id="history-card" style="display:none;">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+    <div class="section-label" style="margin:0;">Riwayat Convert</div>
+    <button class="btn-clear-history" id="btn-clear-history">Hapus Semua</button>
+  </div>
+  <div class="divider" style="margin-bottom:14px;"></div>
+  <div id="history-list"></div>
+</div>
+
+<!-- Roblox Upload History -->
+<div class="glass-card" id="rbx-history-card" style="display:none;">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+    <div class="section-label" style="margin:0;">Riwayat Upload Roblox</div>
+    <button class="btn-clear-history" id="btn-clear-rbx-history">Hapus Semua</button>
+  </div>
+  <div class="divider" style="margin-bottom:14px;"></div>
+  <div id="rbx-history-list"></div>
+</div>
+
+<div id="rbx-notifications"></div>
+
+<!-- Roblox Asset Name Modal -->
+<div class="modal-overlay" id="rbx-name-modal">
+  <div class="modal-box rbx-name-modal">
+    <div class="modal-icon" style="background:rgba(139,92,246,.15);border-color:rgba(139,92,246,.3);">
+      <svg viewBox="0 0 24 24" fill="none" stroke="var(--purple)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+      </svg>
+    </div>
+    <div class="modal-title" style="color:var(--purple);">Nama Asset Audio</div>
+    <span class="rbx-name-label" id="rbx-name-label">Nama Asset</span>
+    <input type="text" class="rbx-name-input" id="rbx-name-input" placeholder="Nama audio di Roblox..." maxlength="50"/>
+    <span class="rbx-name-hint">Maks 50 karakter · akan tampil di library Roblox kamu</span>
+    <button class="rbx-name-submit" id="rbx-name-submit">Upload to Roblox</button>
+    <button class="rbx-name-cancel" id="rbx-name-cancel">Batal</button>
+  </div>
+</div>
+
+<!-- Warning Modal -->
+<div class="modal-overlay" id="settings-modal">
+  <div class="modal-box">
+    <div class="modal-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+        <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+      </svg>
+    </div>
+    <div class="modal-title">Changing Default Configuration</div>
+    <div class="modal-desc">
+      Only change these settings if your audio was rejected by Roblox moderation.
+      Changing these values without knowing what you're doing reduces your chance of approval.
+      If you got rejected, please create a support ticket to ask about configuration.
+    </div>
+    <div style="width:100%;">
+      <div class="modal-progress-track">
+        <div class="modal-progress-fill" id="modal-progress"></div>
+      </div>
+      <div style="text-align:center;font-size:11px;color:var(--muted);margin-top:6px;" id="modal-countdown">Continue (4s)</div>
+    </div>
+    <button class="modal-continue" id="modal-continue" disabled>Continue</button>
+    <button class="modal-reset" id="modal-reset">Reset to defaults</button>
+    <button class="modal-skip" id="modal-skip">I know what I'm doing</button>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  made with idea by <span>rungkadkacaw</span> &nbsp;&middot;&nbsp; Discord Bot + Web Service
+</footer>
+
+<script src="/static/app.js"></script>
+</body>
+</html>
