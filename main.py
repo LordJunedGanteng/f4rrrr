@@ -497,11 +497,21 @@ def logout():
 @login_required
 def app_dashboard():
     track_activity()
-    users = load_json(USERS_FILE, {})
-    user_info = users.get(session['user_id'], {})
-    return render_template('index.html', 
-                           user=session['user_id'], 
-                           is_premium=user_info.get('is_premium', False))
+    user_id = session['user_id']
+    with get_db() as db:
+        user_info = db.execute("SELECT * FROM users WHERE username = ?", (user_id,)).fetchone()
+        if not user_info:
+            session.clear()
+            return redirect(url_for('landing_page'))
+        
+        is_premium = bool(user_info['is_premium'])
+        usage_today = get_today_count(user_id)
+        
+        return render_template('index.html', 
+                               user=user_id, 
+                               is_premium=is_premium,
+                               usage_today=usage_today,
+                               max_free=3)
 
 # ─────────────────────────────────────────────
 #  ADMIN PANEL
