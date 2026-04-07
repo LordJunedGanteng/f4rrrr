@@ -13,7 +13,10 @@ import zipfile
 import uuid
 import threading
 import secrets
-import psutil
+try:
+    import psutil
+except ImportError:
+    psutil = None
 import time
 import functools
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -523,7 +526,15 @@ def api_admin_stats():
     users   = load_json(USERS_FILE, {})
     history = load_json(HISTORY_FILE, [])
     # System Stats
-    mem = psutil.virtual_memory()
+    mem_stats = {'total': 'N/A', 'used': 'N/A', 'percent': 'N/A'}
+    if psutil:
+        mem = psutil.virtual_memory()
+        mem_stats = {
+            'total': mem.total,
+            'used': mem.used,
+            'percent': mem.percent
+        }
+    
     def check_status(url):
         try: return 200 <= _req.head(url, timeout=3).status_code < 400
         except: return False
@@ -532,11 +543,7 @@ def api_admin_stats():
         'total_users': len(users),
         'premium_users': sum(1 for u in users.values() if u.get('is_premium')),
         'total_tasks': len(history),
-        'memory': {
-            'total': mem.total,
-            'used': mem.used,
-            'percent': mem.percent
-        },
+        'memory': mem_stats,
         'apis': {
             'youtube': check_status('https://www.youtube.com'),
             'spotify': check_status('https://www.spotify.com'),
