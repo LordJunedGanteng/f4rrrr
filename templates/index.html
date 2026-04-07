@@ -480,6 +480,10 @@
     }
     .btn-save:hover { opacity: .85; }
     .btn-save:active { transform: scale(.97); }
+    .btn-save:hover { opacity: .9; transform: translateY(-1px); box-shadow: 0 8px 20px rgba(139,92,246,.3); }
+
+    .preset-btn { background: transparent; color: var(--muted); transition: all .2s; }
+    .preset-btn.active { background: var(--purple); color: #fff; box-shadow: 0 4px 12px rgba(139,92,246,.2); }
 
     /* ── COOKIES ── */
     .cookies-status-row {
@@ -1070,7 +1074,40 @@
         <button class="btn-save" id="btn-save">Simpan Perubahan</button>
       </div>
 
-      <!-- Cookies sub-section -->
+      <!-- Advanced Presets Section -->
+      <div class="divider" style="margin: 24px 0 16px;"></div>
+      <div class="section-label" style="margin-bottom:12px;">Pilihan Kualitas & Efek</div>
+      <div class="settings-grid" style="grid-template-columns: 1fr 1fr 1fr; gap: 16px;">
+        <div class="setting-item">
+          <label class="setting-label">Format Output</label>
+          <div class="setting-desc">Pilih format file akhir</div>
+          <div style="display: flex; gap: 4px; background: var(--surface); padding: 4px; border-radius: 10px; border: 1px solid var(--border);">
+            <button class="preset-btn active" data-format="ogg" style="flex:1; border:none; padding:6px; border-radius:6px; font-size:11px; font-weight:700; cursor:pointer;">OGG</button>
+            <button class="preset-btn" data-format="wav" style="flex:1; border:none; padding:6px; border-radius:6px; font-size:11px; font-weight:700; cursor:pointer;">WAV</button>
+            <button class="preset-btn" data-format="mp3" style="flex:1; border:none; padding:6px; border-radius:6px; font-size:11px; font-weight:700; cursor:pointer;">MP3</button>
+          </div>
+        </div>
+        <div class="setting-item">
+          <label class="setting-label">Sample Rate (Hz)</label>
+          <div class="setting-desc">Kualitas frekuensi audio</div>
+          <select id="sel-hz" class="setting-input" style="height: 38px; border-radius: 10px; padding: 0 12px; font-size: 13px;">
+            <option value="8000">8000 Hz (Lo-fi)</option>
+            <option value="22050">22050 Hz (Medium)</option>
+            <option value="44100" selected>44100 Hz (Standard)</option>
+            <option value="48000">48000 Hz (Maximum)</option>
+          </select>
+        </div>
+        <div class="setting-item">
+          <label class="setting-label">Reverb Effect</label>
+          <div class="setting-desc">Efek kedalaman / gema</div>
+          <label class="sw-row" style="display: flex; align-items: center; justify-content: space-between; background: var(--surface); padding: 8px 12px; border-radius: 10px; border: 1px solid var(--border); cursor: pointer;">
+            <span style="font-size:12px; font-weight:600;">Aktifkan Reverb</span>
+            <input type="checkbox" id="chk-reverb" style="width:16px; height:16px; accent-color: var(--purple);">
+          </label>
+        </div>
+      </div>
+
+      <!-- YouTube Cookies sub-section -->
       <div class="divider" style="margin: 20px 0 16px;"></div>
       <div class="section-label" style="margin-bottom:8px;">YouTube Cookies</div>
       <div class="setting-desc" style="margin-bottom:12px;">

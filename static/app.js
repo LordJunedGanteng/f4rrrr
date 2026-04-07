@@ -4,6 +4,7 @@
   let selectedFile  = null;
   let pollTimer     = null;
   let currentCfg    = { speed: 2.253, amplify: -2 };
+  let currentFormat = 'ogg';
   const ROBLOX_SPEED = 0.45;
 
   // ── Load config on boot ──
@@ -380,6 +381,15 @@
     });
   });
 
+  // ── Preset format buttons ──
+  document.querySelectorAll('.preset-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentFormat = btn.dataset.format;
+    });
+  });
+
   // ── Drop zone ──
   const dropZone  = document.getElementById('drop-zone');
   const fileInput = document.getElementById('file-input');
@@ -421,6 +431,9 @@
     
     formData.append('speed', currentCfg.speed);
     formData.append('amplify', currentCfg.amplify);
+    formData.append('reverb', document.getElementById('chk-reverb').checked ? 'true' : 'false');
+    formData.append('hz', document.getElementById('sel-hz').value);
+    formData.append('format', currentFormat);
 
     clearPreview();
     setBtn(true);

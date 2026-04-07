@@ -152,7 +152,7 @@ def get_ydl_opts(out_template):
 def _ts():
     return datetime.datetime.now().strftime('%H:%M:%S')
 
-def process_web_job(job_id, source, mode, url_or_path, is_upload, speed=2.253, amplify=-2):
+def process_web_job(job_id, source, mode, url_or_path, is_upload, speed=2.253, amplify=-2, reverb=False, hz=44100, out_format='ogg'):
     job = web_jobs[job_id]
 
     def log(label, status='active', detail=''):
@@ -237,7 +237,7 @@ def process_web_job(job_id, source, mode, url_or_path, is_upload, speed=2.253, a
             job['progress'] = 60
             audio = audio._spawn(audio.raw_data, overrides={
                 'frame_rate': int(audio.frame_rate * speed)
-            }).set_frame_rate(44100)
+            }).set_frame_rate(hz)
             new_dur = len(audio) / 1000
             done_last(detail=f'Durasi baru: {int(new_dur//60)}:{int(new_dur%60):02d}')
 
@@ -246,20 +246,34 @@ def process_web_job(job_id, source, mode, url_or_path, is_upload, speed=2.253, a
             audio = audio + amplify
             done_last()
 
-            log('Export ke OGG (Q10)...')
+            log(f'Export ke {out_format.upper()}...')
             job['progress'] = 82
             token    = get_random_string(16)
-            out_name = f"{get_random_string()}_BP.ogg"
+            out_name = f"{get_random_string()}.{out_format}"
             out_path = f"downloads/{out_name}"
-            audio.export(out_path, format='ogg', parameters=['-q:a', '10'])
+            
+            export_params = []
+            if reverb:
+                # Natural reverb: aecho=in_gain:out_gain:delay:decay
+                export_params.extend(['-af', 'aecho=0.8:0.88:60:0.4'])
+            
+            if out_format == 'ogg':
+                export_params.extend(['-q:a', '10'])
+            elif out_format == 'mp3':
+                export_params.extend(['-b:a', '192k'])
+
+            audio.export(out_path, format=out_format, parameters=export_params)
             size = os.path.getsize(out_path)
-            if size > 8 * 1024 * 1024:
+            
+            # Roblox specific compression for OGG if it exceeds 8MB
+            if out_format == 'ogg' and size > 8 * 1024 * 1024:
                 log('File > 8MB, re-encode ke Q8...')
-                audio.export(out_path, format='ogg', parameters=['-q:a', '8'])
+                audio.export(out_path, format='ogg', parameters=['-q:a', '8'] + (['-af', 'aecho=0.8:0.88:60:0.4'] if reverb else []))
                 size = os.path.getsize(out_path)
                 done_last(detail=f'{size/1024/1024:.2f} MB (dikompresi)')
             else:
                 done_last(detail=f'{size/1024/1024:.2f} MB')
+                
             download_tokens[token] = out_path
             job['files']    = [{'name': out_name, 'size': size, 'token': token}]
             job['progress'] = 100
@@ -307,12 +321,18 @@ def process_web_job(job_id, source, mode, url_or_path, is_upload, speed=2.253, a
 
                 processed = segment._spawn(segment.raw_data, overrides={
                     'frame_rate': int(segment.frame_rate * speed)
-                }).set_frame_rate(44100)
+                }).set_frame_rate(hz)
                 processed = processed + amplify
 
-                processed.export(out_path, format='ogg', parameters=['-q:a', '10'])
+                # Apply reverb if enabled
+                mix_params = ['-q:a', '10']
+                if reverb:
+                    mix_params.extend(['-af', 'aecho=0.8:0.88:60:0.4'])
+
+                processed.export(out_path, format='ogg', parameters=mix_params)
                 if os.path.getsize(out_path) > 8 * 1024 * 1024:
-                    processed.export(out_path, format='ogg', parameters=['-q:a', '8'])
+                    # Re-encode with lower quality if still too big
+                    processed.export(out_path, format='ogg', parameters=['-q:a', '8'] + (['-af', 'aecho=0.8:0.88:60:0.4'] if reverb else []))
 
                 seg_dur = len(processed) / 1000
                 done_last(detail=f'{int(seg_dur//60)}:{int(seg_dur%60):02d} — {os.path.getsize(out_path)/1024/1024:.2f} MB')
@@ -624,7 +644,17 @@ def api_process():
     except:
         amplify_val = -2
 
-    t = threading.Thread(target=process_web_job, args=(job_id, source, mode, path_or_url, is_upload, speed_val, amplify_val), daemon=True)
+    reverb_val = request.form.get('reverb') == 'true'
+    try:
+        hz_val = int(request.form.get('hz', 44100))
+    except:
+        hz_val = 44100
+    
+    out_format = request.form.get('format', 'ogg').lower()
+    if out_format not in ['ogg', 'mp3', 'wav']:
+        out_format = 'ogg'
+
+    t = threading.Thread(target=process_web_job, args=(job_id, source, mode, path_or_url, is_upload, speed_val, amplify_val, reverb_val, hz_val, out_format), daemon=True)
     t.start()
 
     return jsonify({'job_id': job_id})
