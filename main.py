@@ -31,39 +31,6 @@ except ImportError:
 def get_random_string(length=8):
     letters = string.ascii_lowercase + string.digits
     return ''.join(random.choice(letters) for i in range(length))
-import yt_dlp
-from pydub import AudioSegment
-import os
-import json
-from flask import Flask, render_template, jsonify, request, send_file, redirect, session, url_for
-import requests as _req
-import urllib.parse
-import datetime
-import string
-import random
-import shutil
-import zipfile
-import uuid
-import threading
-import secrets
-try:
-    import psutil
-except ImportError:
-    psutil = None
-import time
-import functools
-from werkzeug.security import generate_password_hash, check_password_hash
-try:
-    import audioop
-except ImportError:
-    try:
-        import audioop_lts as audioop
-    except ImportError:
-        audioop = None
-
-def get_random_string(length=8):
-    letters = string.ascii_lowercase + string.digits
-    return ''.join(random.choice(letters) for i in range(length))
 
 os.makedirs("downloads", exist_ok=True)
 
@@ -165,10 +132,15 @@ def api_online_count():
         'users': unique_users
     })
 
-COOKIES_FILE = 'DISCORD AUDIOBYPASSBOT/cookies.txt'
+COOKIES_FILE = 'cookies.txt'
 
 def cookies_active():
-    return os.path.exists(COOKIES_FILE) and os.path.getsize(COOKIES_FILE) > 10
+    active = os.path.exists(COOKIES_FILE) and os.path.getsize(COOKIES_FILE) > 10
+    if active:
+        print(f"--- [DEBUG] Cookies active: {COOKIES_FILE} ({os.path.getsize(COOKIES_FILE)} bytes) ---")
+    else:
+        print(f"--- [DEBUG] Cookies NOT active or too small: {COOKIES_FILE} ---")
+    return active
 
 def _get_ffmpeg_location():
     try:
@@ -196,6 +168,7 @@ def _get_ffmpeg_location():
 def _apply_cookies(opts):
     if cookies_active():
         opts['cookiefile'] = COOKIES_FILE
+        print(f"--- [DEBUG] Applied cookiefile to yt-dlp opts ---")
     loc = _get_ffmpeg_location()
     if loc:
         opts['ffmpeg_location'] = loc
@@ -668,9 +641,13 @@ def api_cookies():
     if request.method == 'POST':
         c_text = request.json.get('cookies', '').strip()
         if not c_text: return jsonify({'error': 'Empty content'}), 400
-        os.makedirs(os.path.dirname(COOKIES_FILE), exist_ok=True)
+        dir_name = os.path.dirname(COOKIES_FILE)
+        if dir_name: os.makedirs(dir_name, exist_ok=True)
         with open(COOKIES_FILE, 'w') as f: f.write(c_text)
         entries = sum(1 for line in c_text.splitlines() if line.strip() and not line.startswith('#'))
+        print(f"--- [DEBUG] Saved {entries} cookie entries to {COOKIES_FILE} ---")
+        if c_text:
+            print(f"--- [DEBUG] Cookie file starts with: {c_text[:50]}... ---")
         return jsonify({'ok': True, 'entries': entries})
     
     if request.method == 'DELETE':
@@ -756,6 +733,7 @@ def api_process():
         int(request.form.get('hz', 44100)),
         request.form.get('format', 'ogg')
     )).start()
+    return jsonify({'ok': True, 'job_id': job_id})
 
 @app.route('/api/status/<job_id>')
 @login_required
