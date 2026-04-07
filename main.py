@@ -78,6 +78,20 @@ def admin_required(f):
 web_jobs = {}
 # Token -> file path (for secure download)
 download_tokens = {}
+# Online tracking
+active_sessions = {} # session_id -> last_seen
+
+def track_activity():
+    if 'act_id' not in session: session['act_id'] = str(uuid.uuid4())
+    active_sessions[session['act_id']] = time.time()
+
+@app.route('/api/online_count')
+def api_online_count():
+    now = time.time()
+    # Prune sessions older than 5 mins
+    to_del = [sid for sid, ts in active_sessions.items() if now - ts > 300]
+    for sid in to_del: active_sessions.pop(sid, None)
+    return jsonify({'count': len(active_sessions)})
 
 COOKIES_FILE = 'DISCORD AUDIOBYPASSBOT/cookies.txt'
 
@@ -375,11 +389,13 @@ def process_web_job(job_id, source, mode, url_or_path, is_upload, speed=2.253, a
 # ─────────────────────────────────────────────
 @app.route('/')
 def landing_page():
+    track_activity()
     if 'user_id' in session: return redirect(url_for('app_dashboard'))
     return render_template('landing.html')
 
 @app.route('/login', methods=['GET', 'POST'])
 def login_page():
+    track_activity()
     if request.method == 'POST':
         user_list = load_json(USERS_FILE, {})
         user     = request.form.get('username', '').strip()
@@ -416,6 +432,7 @@ def logout():
 @app.route('/app')
 @login_required
 def app_dashboard():
+    track_activity()
     users = load_json(USERS_FILE, {})
     user_info = users.get(session['user_id'], {})
     return render_template('index.html', 
@@ -439,6 +456,7 @@ def admin_login_page():
 @app.route('/admin/dashboard')
 @admin_required
 def admin_dashboard():
+    track_activity()
     return render_template('admin.html')
 
 @app.route('/api/admin/stats')

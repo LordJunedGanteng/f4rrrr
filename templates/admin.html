@@ -61,11 +61,29 @@
         .ai-tag { display: inline-block; padding: 4px 12px; background: var(--purple); color: white; border-radius: 99px; font-size: 10px; font-weight: 800; margin-bottom: 16px; }
         .ai-recommendation { font-size: 18px; font-weight: 600; line-height: 1.5; color: var(--text); }
         .ai-confidence { font-size: 12px; color: var(--green); font-weight: 700; margin-top: 12px; display: flex; align-items: center; gap: 6px; }
+
+        /* Glow Layer */
+        .glow-layer {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; z-index: 9999;
+            background: radial-gradient(600px circle at var(--mouse-x) var(--mouse-y), rgba(139, 92, 246, 0.08), transparent 80%);
+        }
+        .online-badge {
+            display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 700; color: #10b981;
+            background: rgba(16, 185, 129, 0.1); padding: 4px 10px; border-radius: 99px;
+            margin-top: 12px; width: fit-content;
+        }
+        .online-dot { width: 6px; height: 6px; background: #10b981; border-radius: 50%; box-shadow: 0 0 8px #10b981; }
     </style>
 </head>
-<body>
+<body style="--mouse-x: 50%; --mouse-y: 50%;">
+    <div class="glow-layer"></div>
     <div class="sidebar">
         <div class="logo">RKD<span>KCW</span></div>
+        <div class="online-badge">
+            <div class="online-dot"></div>
+            <span id="online-count">1</span> Online
+        </div>
         <div class="nav-items">
             <button class="nav-item active" onclick="switchTab('overview', this)">Overview</button>
             <button class="nav-item" onclick="switchTab('users', this)">Users</button>
@@ -251,6 +269,23 @@
         setInterval(fetchStats, 10000);
         fetchStats();
         fetchUsers();
+
+        // Mouse Glow
+        document.addEventListener('mousemove', e => {
+            document.body.style.setProperty('--mouse-x', e.clientX + 'px');
+            document.body.style.setProperty('--mouse-y', e.clientY + 'px');
+        });
+
+        // Online Counter
+        async function updateOnline() {
+            try {
+                const res = await fetch('/api/online_count');
+                const data = await res.json();
+                document.getElementById('online-count').textContent = data.count;
+            } catch(e) {}
+        }
+        setInterval(updateOnline, 10000);
+        updateOnline();
     </script>
 </body>
 </html>
