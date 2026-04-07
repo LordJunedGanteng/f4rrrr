@@ -188,6 +188,8 @@ def get_ydl_opts(out_template):
         'fragment_retries': 3,
         'socket_timeout': 30,
         'no_color': True,
+        'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
+        'extractor_args': {'youtube': {'player_client': ['web', 'android']}},
     }
     loc = _get_ffmpeg_location()
     if loc:
@@ -780,6 +782,8 @@ def api_preview():
     ydl_opts = {
         'quiet': True, 'no_warnings': True, 'skip_download': True,
         'nocheckcertificate': True, 'noplaylist': True,
+        'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
+        'extractor_args': {'youtube': {'player_client': ['web', 'android']}},
     }
     loc = _get_ffmpeg_location()
     if loc:
