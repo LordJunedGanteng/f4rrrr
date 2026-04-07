@@ -31,6 +31,39 @@ except ImportError:
 def get_random_string(length=8):
     letters = string.ascii_lowercase + string.digits
     return ''.join(random.choice(letters) for i in range(length))
+import yt_dlp
+from pydub import AudioSegment
+import os
+import json
+from flask import Flask, render_template, jsonify, request, send_file, redirect, session, url_for
+import requests as _req
+import urllib.parse
+import datetime
+import string
+import random
+import shutil
+import zipfile
+import uuid
+import threading
+import secrets
+try:
+    import psutil
+except ImportError:
+    psutil = None
+import time
+import functools
+from werkzeug.security import generate_password_hash, check_password_hash
+try:
+    import audioop
+except ImportError:
+    try:
+        import audioop_lts as audioop
+    except ImportError:
+        audioop = None
+
+def get_random_string(length=8):
+    letters = string.ascii_lowercase + string.digits
+    return ''.join(random.choice(letters) for i in range(length))
 
 os.makedirs("downloads", exist_ok=True)
 
@@ -39,6 +72,13 @@ os.makedirs("downloads", exist_ok=True)
 # ─────────────────────────────────────────────
 app = Flask(__name__, template_folder='templates', static_folder='static')
 app.secret_key = os.environ.get("FLASK_SECRET", secrets.token_hex(24))
+
+# Global error handler to give reason code
+@app.errorhandler(500)
+def handle_500(e):
+    import traceback
+    err = traceback.format_exc()
+    return f"<h1>Internal Server Error (500)</h1><p>Reason Code: {str(e)}</p><pre>{err}</pre>", 500
 
 # Data storage (JSON-based)
 USERS_FILE  = 'users.json'
@@ -49,7 +89,8 @@ ADMIN_CREDENTIALS = {
 }
 
 # Helper to load/save JSON data
-def load_json(path, default=[]):
+def load_json(path, default=None):
+    if default is None: default = []
     if os.path.exists(path):
         try:
             with open(path, 'r') as f: return json.load(f)
@@ -58,6 +99,8 @@ def load_json(path, default=[]):
 
 def save_json(path, data):
     with open(path, 'w') as f: json.dump(data, f, indent=2)
+
+print(f"--- [DEBUG] main.py loaded successfully ---")
 
 # Helper to get user's bypass count for TODAY
 def get_today_count(user_id):
@@ -595,7 +638,14 @@ def api_admin_analytics():
     # Default if no history
     recommendation = {"speed": 2.253, "amplify": -2, "confidence": 0}
     if best_key:
-        s_str, a_str = best_key.split('|')
+        try:
+            s_str, a_str = best_key.split('|')
+            recommendation = {
+                "speed": float(s_str),
+                "amplify": float(a_str),
+                "confidence": int(best_rate * 100)
+            }
+        except: pass
     return jsonify({
         'recommendation': recommendation,
         'total_history': len(history),
@@ -730,7 +780,6 @@ def health():
 # ─────────────────────────────────────────────
 #  ROBLOX INTEGRATION
 # ─────────────────────────────────────────────
-HISTORY_FILE        = 'history.json'
 ROBLOX_CONFIG_FILE  = 'roblox_config.json'
 ROBLOX_ASSET_URL    = 'https://apis.roblox.com/assets/v1/assets'
 ROBLOX_OP_URL       = 'https://apis.roblox.com/assets/v1/operations'
@@ -787,9 +836,6 @@ def api_history_delete():
     user_id = session.get('user_id')
     new_history = [h for h in history if h.get('user_id') != user_id]
     save_json(HISTORY_FILE, new_history)
-    return jsonify({'ok': True})
-    if os.path.exists(HISTORY_FILE):
-        os.remove(HISTORY_FILE)
     return jsonify({'ok': True})
 
 @app.route('/api/roblox/thumbnail/<asset_id>')
@@ -899,5 +945,13 @@ def api_roblox_operation(op_id):
     return jsonify({'done': done, 'asset_id': asset_id, 'rejected': rejected})
 
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host='0.0.0.0', port=port, threaded=True)
+    try:
+        port = int(os.environ.get("PORT", 5000))
+        print(f"--- [STARTUP] Attempting to bind on 0.0.0.0:{port} ---")
+        app.run(host='0.0.0.0', port=port, threaded=True)
+    except Exception as e:
+        print(f"--- [CRASH] Fatal error during startup: {e} ---")
+        with open("crash_log.txt", "w") as f:
+            import traceback
+            f.write(traceback.format_exc())
+        raise e
