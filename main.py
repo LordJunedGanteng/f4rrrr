@@ -85,8 +85,9 @@ def get_today_count(user_id):
 def login_required(f):
     @functools.wraps(f)
     def decorated_function(*args, **kwargs):
+        # Login system disabled - auto-assign Guest ID
         if 'user_id' not in session:
-            return redirect(url_for('login_page'))
+            session['user_id'] = f"Guest_{get_random_string(4)}"
         return f(*args, **kwargs)
     return decorated_function
 
@@ -467,8 +468,7 @@ def process_web_job(job_id, user_id, source, mode, url_or_path, is_upload, speed
 @app.route('/')
 def landing_page():
     track_activity()
-    if 'user_id' in session: return redirect(url_for('app_dashboard'))
-    return render_template('landing.html')
+    return redirect(url_for('app_dashboard'))
 
 @app.route('/login', methods=['GET', 'POST'])
 def login_page():
@@ -510,22 +510,17 @@ def logout():
 @login_required
 def app_dashboard():
     track_activity()
-    user_id = session['user_id']
-    users = load_json(USERS_FILE, {})
-    user_info = users.get(user_id, {})
+    user_id = session.get('user_id', 'Guest')
     
-    if not user_info:
-        session.clear()
-        return redirect(url_for('landing_page'))
-    
-    is_premium = bool(user_info.get('is_premium', False))
+    # Everyone is premium now
+    is_premium = True
     usage_today = get_today_count(user_id)
     
     return render_template('index.html', 
                            user=user_id, 
                            is_premium=is_premium,
                            usage_today=usage_today,
-                           max_free=3)
+                           max_free=999)
 
 # ─────────────────────────────────────────────
 #  ADMIN PANEL
@@ -672,14 +667,8 @@ def favicon():
 @app.route('/api/process', methods=['POST'])
 @login_required
 def api_process():
-    # Usage Check for Free Users
-    user_id = session['user_id']
-    users = load_json(USERS_FILE, {})
-    user_info = users.get(user_id, {})
-    if not user_info.get('is_premium', False):
-        count = get_today_count(user_id)
-        if count >= 3:
-            return jsonify({'error': 'Limit harian tercapai (3x). Silakan upgrade ke Premium untuk bypass sepuasnya!'}), 403
+    # Usage Check Disabled (Free to Use)
+    user_id = session.get('user_id', 'Guest')
 
     source = request.form.get('source', 'youtube')
     mode   = request.form.get('mode', 'bypassed')
