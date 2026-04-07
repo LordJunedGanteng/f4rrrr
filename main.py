@@ -342,8 +342,10 @@ def process_web_job(job_id, source, mode, url_or_path, is_upload, speed=2.253, a
                 try: os.remove(f)
                 except: pass
         if is_upload and mp3_file and os.path.exists(mp3_file):
-            try: os.remove(mp3_file)
-            except: pass
+            try:
+                os.remove(mp3_file)
+            except:
+                pass
 
         log('Selesai — file siap diunduh', status='done')
         job['status'] = 'done'
@@ -352,6 +354,8 @@ def process_web_job(job_id, source, mode, url_or_path, is_upload, speed=2.253, a
             'title':    title or url_or_path,
             'source':   source,
             'mode':     mode,
+            'speed':    speed,
+            'amplify':  amplify,
             'url':      '' if is_upload else url_or_path,
             'duration': duration,
             'size':     total_size,
@@ -480,6 +484,52 @@ def api_admin_toggle_premium():
         save_json(USERS_FILE, users)
         return jsonify({'ok': True, 'new_status': users[target]['is_premium']})
     return jsonify({'error': 'User not found'}), 404
+
+@app.route('/api/admin/analytics')
+@admin_required
+def api_admin_analytics():
+    history = load_json(HISTORY_FILE, [])
+    
+    # Group by settings to find success rate
+    # Schema assumed: entry has 'status' (from Roblox check) or we infer from history
+    # Since history entries at line 351 don't have 'status' yet, 
+    # we assume 'status' is added when roblox operation completes.
+    
+    stats = {} # (speed, amplify) -> {success: 0, total: 0}
+    for entry in history:
+        s = entry.get('speed', 2.253)
+        a = entry.get('amplify', -2)
+        key = f"{s}|{a}"
+        if key not in stats: stats[key] = {'accepted': 0, 'total': 0}
+        stats[key]['total'] += 1
+        # Mark as accepted if it has 'done' status or an asset_id
+        if entry.get('roblox_status') == 'accepted' or entry.get('asset_id'):
+            stats[key]['accepted'] += 1
+    
+    # Find best setting
+    best_key = None
+    best_rate = -1
+    for key, val in stats.items():
+        rate = val['accepted'] / val['total'] if val['total'] > 0 else 0
+        if rate > best_rate:
+            best_rate = rate
+            best_key = key
+    
+    # Default if no history
+    recommendation = {"speed": 2.253, "amplify": -2, "confidence": 0}
+    if best_key:
+        s_str, a_str = best_key.split('|')
+        recommendation = {
+            "speed": float(s_str),
+            "amplify": int(a_str),
+            "confidence": int(best_rate * 100)
+        }
+
+    return jsonify({
+        'recommendation': recommendation,
+        'total_history': len(history),
+        'success_trend': stats # for advanced charts
+    })
 
 # ─────────────────────────────────────────────
 #  COOKIES API
