@@ -1,4 +1,4 @@
-FROM python:3.10-slim
+FROM python:3.13-slim
 
 # Bypass buffering in logs
 ENV PYTHONUNBUFFERED=1
@@ -13,7 +13,8 @@ WORKDIR /app
 
 # Install dependencies required by the bot
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt
 
 # Copy all the rest of the files into the container
 COPY . .

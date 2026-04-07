@@ -17,6 +17,14 @@ import psutil
 import time
 import functools
 from werkzeug.security import generate_password_hash, check_password_hash
+try:
+    import audioop
+except ImportError:
+    try:
+        import audioop_lts as audioop
+    except ImportError:
+        # Some systems might not have it yet
+        audioop = None
 
 def get_random_string(length=8):
     letters = string.ascii_lowercase + string.digits
