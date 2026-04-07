@@ -23,8 +23,9 @@ except ImportError:
     try:
         import audioop_lts as audioop
     except ImportError:
-        # Some systems might not have it yet
         audioop = None
+
+import sqlite3
 
 def get_random_string(length=8):
     letters = string.ascii_lowercase + string.digits
@@ -38,24 +39,47 @@ os.makedirs("downloads", exist_ok=True)
 app = Flask(__name__, template_folder='templates', static_folder='static')
 app.secret_key = os.environ.get("FLASK_SECRET", secrets.token_hex(24))
 
-# Data storage (JSON-based for Render compatibility)
-USERS_FILE  = 'users.json'
-HISTORY_FILE = 'history.json'
+# Data storage (SQLite-based)
+DATABASE_FILE = 'database.db'
 ADMIN_CREDENTIALS = {
     "username": "rkdkcw",
     "password": generate_password_hash("admin@123")
 }
 
-# Helper to load/save JSON data
-def load_json(path, default=[]):
-    if os.path.exists(path):
-        try:
-            with open(path, 'r') as f: return json.load(f)
-        except: return default
-    return default
+def get_db():
+    db = sqlite3.connect(DATABASE_FILE, check_same_thread=False)
+    db.row_factory = sqlite3.Row
+    return db
 
-def save_json(path, data):
-    with open(path, 'w') as f: json.dump(data, f, indent=2)
+def init_db():
+    with get_db() as db:
+        db.execute('''CREATE TABLE IF NOT EXISTS users (
+            id TEXT PRIMARY KEY,
+            username TEXT UNIQUE,
+            password TEXT,
+            is_premium BOOLEAN DEFAULT 0,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )''')
+        db.execute('''CREATE TABLE IF NOT EXISTS history (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id TEXT,
+            title TEXT,
+            source TEXT,
+            mode TEXT,
+            speed REAL,
+            amplify REAL,
+            status TEXT,
+            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+        )''')
+        db.commit()
+
+init_db()
+
+# Helper to get user's bypass count for TODAY
+def get_today_count(user_id):
+    with get_db() as db:
+        row = db.execute("SELECT COUNT(*) as count FROM history WHERE user_id = ? AND date(timestamp) = date('now')", (user_id,)).fetchone()
+        return row['count'] if row else 0
 
 # Auth middleware
 def login_required(f):
@@ -167,7 +191,7 @@ def get_ydl_opts(out_template):
 def _ts():
     return datetime.datetime.now().strftime('%H:%M:%S')
 
-def process_web_job(job_id, source, mode, url_or_path, is_upload, speed=2.253, amplify=-2, reverb=False, hz=44100, out_format='ogg'):
+def process_web_job(job_id, user_id, source, mode, url_or_path, is_upload, speed=2.253, amplify=-2, reverb=False, hz=44100, out_format='ogg'):
     job = web_jobs[job_id]
 
     def log(label, status='active', detail=''):
@@ -400,6 +424,7 @@ def process_web_job(job_id, source, mode, url_or_path, is_upload, speed=2.253, a
         job['status'] = 'done'
         total_size = sum(f.get('size', 0) for f in job.get('files', []))
         save_history_entry({
+            'user_id':  user_id,
             'title':    title or url_or_path,
             'source':   source,
             'mode':     mode,
@@ -432,31 +457,35 @@ def landing_page():
 def login_page():
     track_activity()
     if request.method == 'POST':
-        user_list = load_json(USERS_FILE, {})
         user     = request.form.get('username', '').strip()
         pw       = request.form.get('password', '').strip()
-        if user in user_list and check_password_hash(user_list[user]['password'], pw):
-            session['user_id'] = user
-            return redirect(url_for('app_dashboard'))
-        return render_template('auth.html', error="Username atau password salah")
+
+        with get_db() as db:
+            found = db.execute("SELECT * FROM users WHERE username = ?", (user,)).fetchone()
+            if found and check_password_hash(found['password'], pw):
+                session['user_id'] = user
+                return redirect(url_for('app_dashboard'))
+            return render_template('auth.html', mode='login', error="Username atau password salah")
     return render_template('auth.html', mode='login')
 
 @app.route('/signup', methods=['GET', 'POST'])
 def signup_page():
     if request.method == 'POST':
-        user_list = load_json(USERS_FILE, {})
         user     = request.form.get('username', '').strip()
         pw       = request.form.get('password', '').strip()
         if not user or not pw: return render_template('auth.html', error="Harap isi semua field", mode='signup')
-        if user in user_list: return render_template('auth.html', error="Username sudah terpakai", mode='signup')
-        user_list[user] = {
-            'password':   generate_password_hash(pw),
-            'is_premium': False,
-            'joined_at':  datetime.datetime.now().isoformat()
-        }
-        save_json(USERS_FILE, user_list)
-        session['user_id'] = user
-        return redirect(url_for('app_dashboard'))
+        
+        uid = str(uuid.uuid4())
+        hashed = generate_password_hash(pw)
+        
+        try:
+            with get_db() as db:
+                db.execute("INSERT INTO users (id, username, password) VALUES (?, ?, ?)", (uid, user, hashed))
+                db.commit()
+            session['user_id'] = user
+            return redirect(url_for('app_dashboard'))
+        except sqlite3.IntegrityError:
+            return render_template('auth.html', error="Username sudah terpakai", mode='signup')
     return render_template('auth.html', mode='signup')
 
 @app.route('/logout')
@@ -497,19 +526,21 @@ def admin_dashboard():
 @app.route('/api/admin/stats')
 @admin_required
 def api_admin_stats():
-    users   = load_json(USERS_FILE, {})
-    history = load_json(HISTORY_FILE, [])
-    # System Stats
+    with get_db() as db:
+        total_users = db.execute("SELECT COUNT(*) FROM users").fetchone()[0]
+        history = db.execute("SELECT * FROM history").fetchall()
+        total_tasks = len(history)
+        premium_users = db.execute("SELECT COUNT(*) FROM users WHERE is_premium = 1").fetchone()[0]
+        
     mem = psutil.virtual_memory()
-    # Health Checks
     def check_status(url):
         try: return 200 <= _req.head(url, timeout=3).status_code < 400
         except: return False
     
     return jsonify({
-        'total_users': len(users),
-        'premium_users': sum(1 for u in users.values() if u.get('is_premium')),
-        'total_tasks': len(history),
+        'total_users': total_users,
+        'premium_users': premium_users,
+        'total_tasks': total_tasks,
         'memory': {
             'total': mem.total,
             'used': mem.used,
@@ -525,23 +556,35 @@ def api_admin_stats():
 @app.route('/api/admin/users')
 @admin_required
 def api_admin_users():
-    return jsonify(load_json(USERS_FILE, {}))
+    with get_db() as db:
+        rows = db.execute("SELECT id, username, is_premium, created_at FROM users").fetchall()
+        users = {}
+        for r in rows:
+            users[r['username']] = {
+                'id': r['id'],
+                'is_premium': bool(r['is_premium']),
+                'joined_at': r['created_at']
+            }
+        return jsonify(users)
 
 @app.route('/api/admin/toggle_premium', methods=['POST'])
 @admin_required
 def api_admin_toggle_premium():
     target = request.json.get('username')
-    users  = load_json(USERS_FILE, {})
-    if target in users:
-        users[target]['is_premium'] = not users[target].get('is_premium', False)
-        save_json(USERS_FILE, users)
-        return jsonify({'ok': True, 'new_status': users[target]['is_premium']})
+    with get_db() as db:
+        user = db.execute("SELECT * FROM users WHERE username = ?", (target,)).fetchone()
+        if user:
+            new_status = 0 if user['is_premium'] else 1
+            db.execute("UPDATE users SET is_premium = ? WHERE username = ?", (new_status, target))
+            db.commit()
+            return jsonify({'ok': True, 'new_status': bool(new_status)})
     return jsonify({'error': 'User not found'}), 404
 
 @app.route('/api/admin/analytics')
 @admin_required
 def api_admin_analytics():
-    history = load_json(HISTORY_FILE, [])
+    with get_db() as db:
+        history = db.execute("SELECT * FROM history").fetchall()
     
     # Group by settings to find success rate
     # Schema assumed: entry has 'status' (from Roblox check) or we infer from history
@@ -616,6 +659,14 @@ def favicon():
 @app.route('/api/process', methods=['POST'])
 @login_required
 def api_process():
+    # Usage Check for Free Users
+    with get_db() as db:
+        user_info = db.execute("SELECT * FROM users WHERE username = ?", (session['user_id'],)).fetchone()
+        if user_info and not user_info['is_premium']:
+            count = get_today_count(session['user_id'])
+            if count >= 3:
+                return jsonify({'error': 'Limit harian tercapai (3x). Silakan upgrade ke Premium untuk bypass sepuasnya!'}), 403
+
     source = request.form.get('source', 'youtube')
     mode   = request.form.get('mode', 'bypassed')
     url    = request.form.get('url', '').strip()
@@ -664,15 +715,19 @@ def api_process():
         hz_val = int(request.form.get('hz', 44100))
     except:
         hz_val = 44100
-    
     out_format = request.form.get('format', 'ogg').lower()
     if out_format not in ['ogg', 'mp3', 'wav']:
         out_format = 'ogg'
 
-    t = threading.Thread(target=process_web_job, args=(job_id, source, mode, path_or_url, is_upload, speed_val, amplify_val, reverb_val, hz_val, out_format), daemon=True)
-    t.start()
-
-    return jsonify({'job_id': job_id})
+    # Spawn job
+    threading.Thread(target=process_web_job, args=(
+        job_id, session['user_id'], source, mode, path_or_url, is_upload,
+        float(request.form.get('speed', 2.253)),
+        float(request.form.get('amplify', -2)),
+        request.form.get('reverb') == 'true',
+        int(request.form.get('hz', 44100)),
+        request.form.get('format', 'ogg')
+    )).start()
 
 @app.route('/api/status/<job_id>')
 @login_required
@@ -706,17 +761,15 @@ ROBLOX_TOKEN_URL    = 'https://apis.roblox.com/oauth/v1/token'
 ROBLOX_USERINFO_URL = 'https://apis.roblox.com/oauth/v1/userinfo'
 
 def save_history_entry(entry):
-    history = []
-    if os.path.exists(HISTORY_FILE):
-        try:
-            with open(HISTORY_FILE, 'r') as f:
-                history = json.load(f)
-        except:
-            history = []
-    history.insert(0, entry)
-    history = history[:100]  # keep last 100
-    with open(HISTORY_FILE, 'w') as f:
-        json.dump(history, f)
+    try:
+        with get_db() as db:
+            db.execute("""INSERT INTO history (user_id, title, source, mode, speed, amplify, status)
+                          VALUES (?, ?, ?, ?, ?, ?, ?)""",
+                       (entry.get('user_id'), entry.get('title'), entry.get('source'), 
+                        entry.get('mode'), entry.get('speed'), entry.get('amplify'), 'done'))
+            db.commit()
+    except Exception as e:
+        print(f"Error saving history to SQLite: {e}")
 
 @app.route('/api/preview')
 @login_required
@@ -749,17 +802,35 @@ def api_preview():
 @app.route('/api/history', methods=['GET'])
 @login_required
 def api_history_get():
-    if not os.path.exists(HISTORY_FILE):
-        return jsonify([])
     try:
-        with open(HISTORY_FILE, 'r') as f:
-            return jsonify(json.load(f))
-    except:
+        with get_db() as db:
+            rows = db.execute("SELECT * FROM history WHERE user_id = ? ORDER BY timestamp DESC LIMIT 50", (session['user_id'],)).fetchall()
+            history = []
+            for r in rows:
+                history.append({
+                    'title': r['title'],
+                    'source': r['source'],
+                    'mode': r['mode'],
+                    'speed': r['speed'],
+                    'amplify': r['amplify'],
+                    'status': r['status'],
+                    'ts': r['timestamp']
+                })
+            return jsonify(history)
+    except Exception as e:
+        print(f"Error fetching history: {e}")
         return jsonify([])
 
 @app.route('/api/history', methods=['DELETE'])
 @login_required
 def api_history_delete():
+    try:
+        with get_db() as db:
+            db.execute("DELETE FROM history WHERE user_id = ?", (session['user_id'],))
+            db.commit()
+        return jsonify({'ok': True})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
     if os.path.exists(HISTORY_FILE):
         os.remove(HISTORY_FILE)
     return jsonify({'ok': True})

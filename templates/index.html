@@ -45,6 +45,40 @@
     }
     .online-dot { width: 6px; height: 6px; background: #10b981; border-radius: 50%; box-shadow: 0 0 8px #10b981; }
 
+    /* ── Subscription Status Cards ── */
+    .status-card {
+      padding: 16px 20px; border-radius: 20px; margin-bottom: 24px;
+      display: flex; align-items: center; justify-content: space-between;
+      backdrop-filter: blur(12px); border: 1px solid var(--border);
+      animation: slideIn 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .status-free {
+      background: linear-gradient(135deg, rgba(234, 179, 8, 0.1), rgba(234, 179, 8, 0.05));
+      border-color: rgba(234, 179, 8, 0.2);
+    }
+    .status-premium {
+      background: linear-gradient(135deg, rgba(139, 92, 246, 0.15), rgba(99, 102, 241, 0.1));
+      border-color: rgba(139, 92, 246, 0.3);
+      box-shadow: 0 0 30px rgba(139, 92, 246, 0.1);
+    }
+    .status-left { display: flex; flex-direction: column; gap: 4px; }
+    .status-badge {
+      font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px;
+      padding: 4px 10px; border-radius: 20px; width: fit-content;
+    }
+    .bg-free { background: #eab308; color: #000; }
+    .bg-premium { background: var(--purple); color: #fff; box-shadow: 0 0 15px var(--purple); }
+    .status-title { font-size: 15px; font-weight: 700; color: #fff; }
+    .status-desc { font-size: 12px; color: var(--muted); }
+    .status-btn {
+      padding: 8px 16px; border-radius: 12px; font-size: 12px; font-weight: 700;
+      border: none; cursor: pointer; transition: 0.2s;
+    }
+    .btn-upgrade { background: #fff; color: #000; }
+    .btn-upgrade:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(255,255,255,0.3); }
+
+    @keyframes slideIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+
     /* ── Mesh gradient bg ── */
     body::before {
       content: '';
@@ -944,6 +978,31 @@
 
 <!-- MAIN FORM -->
 <div class="main-wrap">
+  <!-- Subscription Status -->
+  {% if is_premium %}
+  <div class="status-card status-premium">
+    <div class="status-left">
+      <div class="status-badge bg-premium">Premium User</div>
+      <div class="status-title">Kamu adalah Premium user!</div>
+      <div class="status-desc">Nikmati alat ini sepuasnya tanpa batas harian. ✨</div>
+    </div>
+    <div class="status-right">
+      <div class="pill" style="color:var(--purple); border-color:var(--purple);">∞ Unlimited</div>
+    </div>
+  </div>
+  {% else %}
+  <div class="status-card status-free">
+    <div class="status-left">
+      <div class="status-badge bg-free">Free User</div>
+      <div class="status-title">Kamu adalah Free user</div>
+      <div class="status-desc">Maksimal penggunaan perhari adalah 3x bypass.</div>
+    </div>
+    <div class="status-right" style="display:flex; flex-direction:column; align-items:flex-end; gap:8px;">
+      <div class="pill" style="color:#eab308; border-color:#eab308;">{{ usage_today }}/{{ max_free }} Digunakan</div>
+      <button class="status-btn btn-upgrade">Upgrade Premium</button>
+    </div>
+  </div>
+  {% endif %}
 
   <!-- Source -->
   <div class="glass-card">
